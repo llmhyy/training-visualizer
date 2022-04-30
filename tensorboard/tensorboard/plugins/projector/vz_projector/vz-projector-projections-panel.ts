@@ -87,7 +87,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   customSelectedSearchByMetadataOption: string;
 
   @property({type: String})
-  subjectModelPathEditorInput: string = "/Users/yangxianglin/DVI_data/active_learning/random/resnet18/CIFAR10/";
+  subjectModelPathEditorInput: string = "/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/";
 
   @property({type: String})
   resolutionEditorInput: number;

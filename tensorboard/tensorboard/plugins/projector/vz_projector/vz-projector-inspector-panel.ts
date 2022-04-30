@@ -173,9 +173,9 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         spriteHeight,
       ] = spriteAndMetadata.spriteMetadata.singleImageDim;
       this.spriteMeta = {
-        imagePath: spriteAndMetadata.spriteImage.src,
+        imagePath: spriteAndMetadata.spriteImage?.src,
         aspectRatio: spriteWidth / spriteHeight,
-        nCols: Math.floor(spriteAndMetadata.spriteImage.width / spriteWidth),
+        nCols: Math.floor(spriteAndMetadata.spriteImage?.width / spriteWidth),
         singleImageDim: [spriteWidth, spriteHeight],
       };
     } else {

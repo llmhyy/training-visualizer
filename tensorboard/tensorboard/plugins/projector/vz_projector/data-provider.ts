@@ -430,34 +430,34 @@ export function retrieveSpriteAndMetadataInfo(
   }
   let spriteMsgId = null;
   let spritesPromise: Promise<HTMLImageElement> = null;
-  if (spriteImagePath) {
-    spriteMsgId = logging.setModalMessage('Fetching sprite image...');
-    spritesPromise = fetchImage(spriteImagePath);
-  }
+  // if (spriteImagePath) {
+  //   spriteMsgId = logging.setModalMessage('Fetching sprite image...');
+  //   spritesPromise = fetchImage(spriteImagePath);
+  // }
   // Fetch the metadata and the image in parallel.
-  Promise.all([metadataPromise, spritesPromise]).then((values) => {
+  Promise.all([metadataPromise]).then((values) => {
     if (spriteMsgId) {
       logging.setModalMessage(null, spriteMsgId);
     }
-    const [metadata, spriteImage] = values;
-    if (
-      spriteImage &&
-      (spriteImage.height > MAX_SPRITE_IMAGE_SIZE_PX ||
-        spriteImage.width > MAX_SPRITE_IMAGE_SIZE_PX)
-    ) {
-      logging.setModalMessage(
-        `Error: Sprite image of dimensions ${spriteImage.width}px x ` +
-          `${spriteImage.height}px exceeds maximum dimensions ` +
-          `${MAX_SPRITE_IMAGE_SIZE_PX}px x ${MAX_SPRITE_IMAGE_SIZE_PX}px`
-      );
-    } else {
-      metadata.spriteImage = spriteImage;
+    const [metadata] = values;
+    // if (
+    //   spriteImage &&
+    //   (spriteImage.height > MAX_SPRITE_IMAGE_SIZE_PX ||
+    //     spriteImage.width > MAX_SPRITE_IMAGE_SIZE_PX)
+    // ) {
+    //   logging.setModalMessage(
+    //     `Error: Sprite image of dimensions ${spriteImage.width}px x ` +
+    //       `${spriteImage.height}px exceeds maximum dimensions ` +
+    //       `${MAX_SPRITE_IMAGE_SIZE_PX}px x ${MAX_SPRITE_IMAGE_SIZE_PX}px`
+    //   );
+    // } else {
+      // metadata.spriteImage = spriteImage;
       metadata.spriteMetadata = spriteMetadata;
       try {
         callback(metadata);
       } catch (e) {
         logging.setModalMessage(String(e));
       }
-    }
+    // }
   });
 }

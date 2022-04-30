@@ -229,7 +229,7 @@ export class DataSet {
   /**
    * This part contains information for DVI visualization
    */
-  DVIsubjectModelPath = "/Users/yangxianglin/DVI_data/active_learning/random/resnet18/CIFAR10";
+  DVIsubjectModelPath = "/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10";
   DVIResolution = 400;
   DVIServer = "";
   DVIValidPointNumber: {
