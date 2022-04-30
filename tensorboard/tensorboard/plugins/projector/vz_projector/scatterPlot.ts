@@ -397,10 +397,10 @@ export class ScatterPlot {
   private getPointIndicesFromPickingTexture(
     boundingBox: ScatterBoundingBox
   ): number[] {
-    if (this.worldSpacePointPositions == null) {
+    if (this.worldSpacePointPositions == null || this.worldSpacePointPositions == undefined) {
       return null;
     }
-    const pointCount = this.worldSpacePointPositions.length / 3;
+    const pointCount = this.worldSpacePointPositions?.length / 3;
     const dpr = window.devicePixelRatio || 1;
     const x = Math.floor(boundingBox.x * dpr);
     const y = Math.floor(boundingBox.y * dpr);
@@ -462,8 +462,8 @@ export class ScatterPlot {
       height: 4,
     };
     const pointIndices = this.getPointIndicesFromPickingTexture(boundingBox);
-    const realPointIndices = pointIndices.filter(point => point < this.realDataNumber);
-    if (realPointIndices.length == 0) {
+    const realPointIndices = pointIndices?.filter(point => point < this.realDataNumber);
+    if (!realPointIndices || realPointIndices?.length == 0) {
       this.nearestPoint = pointIndices != null ? pointIndices[0] : null;
     } else {
       this.nearestPoint = realPointIndices[0];

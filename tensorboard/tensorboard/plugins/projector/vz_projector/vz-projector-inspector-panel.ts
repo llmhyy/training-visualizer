@@ -61,6 +61,15 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   showNeighborImages: boolean = true;
 
   @property({type: Boolean})
+  showBackground: boolean = true
+
+  @property({type: Number})
+  confidenceThresholdFrom: number
+
+  @property({type: Number})
+  confidenceThresholdTo: number
+
+  @property({type: Boolean})
   spriteImagesAvailable: Boolean = true;
 
   @property({type: Boolean})
@@ -153,6 +162,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private enableResetFilterButton(enabled: boolean) {
     this.resetFilterButton.disabled = !enabled;
   }
+  private confidenceThresholdChange(){
+    console.log("from:",this.confidenceThresholdFrom,"to:",this.confidenceThresholdTo)
+  }
+
   restoreUIFromBookmark(bookmark: State) {
     this.enableResetFilterButton(bookmark.filteredPoints != null);
   }
@@ -198,10 +211,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   datasetChanged() {
     this.enableResetFilterButton(false);
   }
+  @observe('showBackground')
+  _showBackgroundChanged(){
+     console.log('showBackground', this.showBackground)
+  }
+
   @observe('showNeighborImages', 'spriteImagesAvailable')
   _refreshNeighborsList() {
     this.updateNeighborsList();
   }
+
   metadataEditorContext(enabled: boolean, metadataColumn: string) {
     if (!this.projector || !this.projector.dataSet) {
       return;

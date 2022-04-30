@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-import {html} from '@polymer/polymer';
+import { html } from '@polymer/polymer';
 
 export const template = html`
   <style include="vz-projector-styles"></style>
@@ -54,6 +54,8 @@ export const template = html`
         width: 60px;
         height: 30px;
         font-size: 13px;
+        margin-top: 20px;
+        line-height: 20px;
     }
     .boundingbox-button{
         display: flex;
@@ -225,6 +227,16 @@ export const template = html`
       margin: 5px 0;
       padding: 4px 0;
     }
+    .show-background{
+      display: flex;
+      align-items: center;
+    }
+    #background-toggle{
+      margin-left: 20px;
+    }
+    .threshold-container{
+      display: flex;
+    }
 
     .results {
       display: flex;
@@ -276,6 +288,29 @@ export const template = html`
       <button class="boundingbox-button sent">sent</button>
       <button class="boundingbox-button show">show</button>
       <p>Current <span class="boundingBoxSelection">NA</span></p>
+  </div>
+
+  <div class="confidence-threshold">
+    <span>confidence-threshold</span>
+    <div class="threshold-container">
+      <paper-input
+      value="{{confidenceThresholdFrom}}"
+      label="from:"
+      >
+      </paper-input>
+      <paper-input
+      value="{{confidenceThresholdTo}}"
+      label="to:"
+      >
+      </paper-input>
+      <button class="search-button search" on-click="confidenceThresholdChange">search</button>
+    </div>
+  </div>
+
+  <div class="show-background">
+    <span>show background</span>
+    <paper-toggle-button id="background-toggle" checked="{{showBackground}}">
+    </paper-toggle-button>
   </div>
 
   <div class="results">
