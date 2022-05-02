@@ -1168,6 +1168,7 @@ export class DataSet {
    * Search the dataset based on a metadata field and save all the predicates.
    */
   query(query: string, inRegexMode: boolean, fieldName: string): [any, number[]] {
+    console.log('from,to',query)
     let predicate = util.getSearchPredicate(query, inRegexMode, fieldName);
     let matches: number[] = [];
     this.points.forEach((point, id) => {

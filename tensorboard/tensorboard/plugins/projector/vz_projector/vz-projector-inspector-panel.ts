@@ -60,9 +60,6 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({type: Boolean})
   showNeighborImages: boolean = true;
 
-  @property({type: Boolean})
-  showBackground: boolean = true
-
   @property({type: Number})
   confidenceThresholdFrom: number
 
@@ -162,9 +159,6 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private enableResetFilterButton(enabled: boolean) {
     this.resetFilterButton.disabled = !enabled;
   }
-  private confidenceThresholdChange(){
-    console.log("from:",this.confidenceThresholdFrom,"to:",this.confidenceThresholdTo)
-  }
 
   restoreUIFromBookmark(bookmark: State) {
     this.enableResetFilterButton(bookmark.filteredPoints != null);
@@ -210,10 +204,6 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   }
   datasetChanged() {
     this.enableResetFilterButton(false);
-  }
-  @observe('showBackground')
-  _showBackgroundChanged(){
-     console.log('showBackground', this.showBackground)
   }
 
   @observe('showNeighborImages', 'spriteImagesAvailable')
@@ -560,18 +550,21 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     });
     this.searchButton.onclick=()=>{
       // read search box input and update indices
-
+       
       if (this.searchPredicate == null || this.searchPredicate.trim() === '') {
         this.searchBox.message = '';
         this.projectorEventContext.notifySelectionChanged([]);
         return;
       }
+      console.log(this.searchPredicate,this.selectedMetadataField, this.confidenceThresholdFrom,this.confidenceThresholdTo)
       projector.query(
         this.searchPredicate,
         this.searchInRegexMode,
         this.selectedMetadataField,
         this.currentPredicate,
         this.projector.iteration,
+        this.confidenceThresholdFrom,
+        this.confidenceThresholdTo,
         (indices:any)=>{
           if(indices != null){
             this.queryIndices = indices;
@@ -580,6 +573,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
             } else {
               this.searchBox.message = `${this.queryIndices.length} matches.`;
             }
+            // console.log('this.queryIndices',this.queryIndices)
             this.projectorEventContext.notifySelectionChanged(this.queryIndices);
           }
         }

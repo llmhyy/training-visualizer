@@ -24,7 +24,6 @@ import {
   ScatterBoundingBox,
   ScatterPlotRectangleSelector,
 } from './scatterPlotRectangleSelector';
-
 const BACKGROUND_COLOR = 0xffffff;
 
 /**

@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-import {html} from '@polymer/polymer';
+import { html } from '@polymer/polymer';
 
 import './styles';
 
@@ -239,6 +239,7 @@ export const template = html`
       #data-panel {
         border-top: 1px solid rgba(0, 0, 0, 0.1);
         overflow-y: auto;
+        min-height: 360px;
       }
 
       #toast {
@@ -310,6 +311,20 @@ export const template = html`
             animation-delay="0"
             fit-to-visible-bounds
             >Enable/disable night mode</paper-tooltip
+          >
+
+          <paper-icon-button
+          id="hiddenBackground"
+          alt="show background"
+          toggles
+          icon="image:brightness-2"
+          ></paper-icon-button>
+          <paper-tooltip
+            for="hiddenBackground"
+            position="bottom"
+            animation-delay="0"
+            fit-to-visible-bounds
+            >hidden/show background</paper-tooltip
           >
 
           <paper-icon-button

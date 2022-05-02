@@ -120,6 +120,8 @@ export const template = html`
 
       .container {
         padding: 20px;
+        max-height: 500px;
+        overflow:auto;
       }
 
       .book-icon {

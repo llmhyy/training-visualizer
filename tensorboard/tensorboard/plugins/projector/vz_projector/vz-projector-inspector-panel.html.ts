@@ -148,6 +148,11 @@ export const template = html`
     .search-by {
       display: flex;
     }
+    .search-container{
+      margin-bottom:20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ccc;
+    }
 
     .search-by vz-projector-input {
       width: 100%;
@@ -260,6 +265,7 @@ export const template = html`
       <button class="button clear-selection">Clear selection</button>
     </div>
     
+    <div class="search-container">
     <div class="search-by">
       <vz-projector-input id="search-box" label="Search"></vz-projector-input>
       <paper-dropdown-menu no-animations label="by">
@@ -277,6 +283,21 @@ export const template = html`
           </template>
         </paper-listbox>
       </paper-dropdown-menu>
+</div>
+      <div class="confidence-threshold">
+      <div class="threshold-container">
+        <paper-input
+        value="{{confidenceThresholdFrom}}"
+        label="confidence from:"
+        >
+        </paper-input>
+        <paper-input
+        value="{{confidenceThresholdTo}}"
+        label="confidence to:"
+        >
+        </paper-input>
+      </div>
+      </div>
       <button class="search-button search">search</button>
 
     <div>
@@ -290,28 +311,6 @@ export const template = html`
       <p>Current <span class="boundingBoxSelection">NA</span></p>
   </div>
 
-  <div class="confidence-threshold">
-    <span>confidence-threshold</span>
-    <div class="threshold-container">
-      <paper-input
-      value="{{confidenceThresholdFrom}}"
-      label="from:"
-      >
-      </paper-input>
-      <paper-input
-      value="{{confidenceThresholdTo}}"
-      label="to:"
-      >
-      </paper-input>
-      <button class="search-button search" on-click="confidenceThresholdChange">search</button>
-    </div>
-  </div>
-
-  <div class="show-background">
-    <span>show background</span>
-    <paper-toggle-button id="background-toggle" checked="{{showBackground}}">
-    </paper-toggle-button>
-  </div>
 
   <div class="results">
     <div class="nn" style="display: none">

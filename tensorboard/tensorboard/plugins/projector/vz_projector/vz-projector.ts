@@ -12,15 +12,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-import {PolymerElement} from '@polymer/polymer';
-import {customElement, observe, property} from '@polymer/decorators';
+import { PolymerElement } from '@polymer/polymer';
+import { customElement, observe, property } from '@polymer/decorators';
 import * as THREE from 'three';
 
-import {LegacyElementMixin} from '../../../components/polymer/legacy_element_mixin';
+import { LegacyElementMixin } from '../../../components/polymer/legacy_element_mixin';
 import '../../../components/polymer/irons_and_papers';
 
-import {AnalyticsLogger} from './analyticsLogger';
-import {template} from './vz-projector.html';
+import { AnalyticsLogger } from './analyticsLogger';
+import { template } from './vz-projector.html';
 import {
   ColorOption,
   ColumnStats,
@@ -42,14 +42,14 @@ import {
   analyzeMetadata,
   EmbeddingInfo, ProjectorConfig,
 } from './data-provider';
-import {DemoDataProvider} from './data-provider-demo';
-import {ProtoDataProvider} from './data-provider-proto';
-import {ServerDataProvider} from './data-provider-server';
+import { DemoDataProvider } from './data-provider-demo';
+import { ProtoDataProvider } from './data-provider-proto';
+import { ServerDataProvider } from './data-provider-server';
 import './vz-projector-projections-panel';
 import './vz-projector-bookmark-panel';
 import './vz-projector-data-panel';
 import './vz-projector-inspector-panel';
-import {ProjectorScatterPlotAdapter} from './projectorScatterPlotAdapter';
+import { ProjectorScatterPlotAdapter } from './projectorScatterPlotAdapter';
 import {
   DistanceMetricChangedListener,
   HoverListener,
@@ -60,7 +60,7 @@ import {
 import * as knn from './knn';
 import * as logging from './logging';
 import * as util from './util';
-import {MouseMode} from './scatterPlot';
+import { MouseMode } from './scatterPlot';
 
 /**
  * The minimum number of dimensions the data should have to automatically
@@ -81,32 +81,32 @@ class Projector
   implements ProjectorEventContext {
   static readonly template = template;
 
-  @property({type: String})
+  @property({ type: String })
   routePrefix: string;
 
-  @property({type: String})
+  @property({ type: String })
   dataProto: string;
 
-  @property({type: String})
+  @property({ type: String })
   servingMode: ServingMode;
 
   // The path to the projector config JSON file for demo mode.
-  @property({type: String})
+  @property({ type: String })
   projectorConfigJsonPath: string;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   pageViewLogging: boolean;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   eventLogging: boolean;
 
   /**
    * DVI properties
    */
-  @property({type: String})
+  @property({ type: String })
   DVIServer: string
 
-      // The working subset of the data source's original data set.
+  // The working subset of the data source's original data set.
   dataSet: DataSet;
   iteration: number;
   private selectionChangedListeners: SelectionChangedListener[];
@@ -136,6 +136,7 @@ class Projector
   private metadataCard: any;
   private statusBar: HTMLDivElement;
   private analyticsLogger: AnalyticsLogger;
+  private backgroundPoints: any
 
   async ready() {
     super.ready();
@@ -150,7 +151,7 @@ class Projector
       this.analyticsLogger.logWebGLDisabled();
       logging.setErrorMessage(
         'Your browser or device does not have WebGL enabled. Please enable ' +
-          'hardware acceleration, or use a browser that supports WebGL.'
+        'hardware acceleration, or use a browser that supports WebGL.'
       );
       return;
     }
@@ -177,11 +178,11 @@ class Projector
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    await fetch("standalone_projector_config.json", {method: 'GET'})
-        .then(response => response.json())
-        .then(data => {this.DVIServer = data.DVIServerIP+":"+data.DVIServerPort;})
+    await fetch("standalone_projector_config.json", { method: 'GET' })
+      .then(response => response.json())
+      .then(data => { this.DVIServer = data.DVIServerIP + ":" + data.DVIServerPort; })
   };
-  onIterationChange(num:number){
+  onIterationChange(num: number) {
     this.iteration = num;
   }
 
@@ -328,9 +329,9 @@ class Projector
     }
     this.dataSetBeforeFilter = null;*/
     // setDVIfilter all data
-    var indices:number[];
+    var indices: number[];
     indices = [];
-    for(let i = 0;i<this.dataSet.DVIValidPointNumber[this.dataSet.tSNEIteration];i++){
+    for (let i = 0; i < this.dataSet.DVIValidPointNumber[this.dataSet.tSNEIteration]; i++) {
       indices.push(i);
     }
     this.dataSetFilterIndices = indices;
@@ -342,7 +343,7 @@ class Projector
   /**
    * Used by clients to indicate that a selection has occurred.
    */
-  notifySelectionChanged(newSelectedPointIndices: number[], selectMode?:boolean) {
+  notifySelectionChanged(newSelectedPointIndices: number[], selectMode?: boolean) {
     let neighbors: knn.NearestEntry[] = [];
     if (
       this.editMode && // point selection toggle in existing selection
@@ -376,7 +377,7 @@ class Projector
               neighbors[pos].dist < n_dist // find pos
             )
               pos = pos + 1; // move up the sorted neighbors list according to dist
-            neighbors.splice(pos, 0, {index: p, dist: n_dist}); // add new neighbor
+            neighbors.splice(pos, 0, { index: p, dist: n_dist }); // add new neighbor
           }
         });
       } else {
@@ -402,7 +403,7 @@ class Projector
           this.metadataCard.updateMetadata(null); // clear metadata
         }
       }
-    } else if(selectMode == true){
+    } else if (selectMode == true) {
       // for bounding box selection
       // multiple selections
       let updatedSelectedPointIndices = this.selectedPointIndices.filter(
@@ -426,7 +427,7 @@ class Projector
         this.metadataCard.updateMetadata(null); // clear metadata
       }
       this.inspectorPanel.updateBoundingBoxSelection(newSelectedPointIndices);
-    }else {
+    } else {
       // normal selection mode
       this.selectedPointIndices = newSelectedPointIndices;
       if (newSelectedPointIndices.length === 1 && this.dataSet.points[newSelectedPointIndices[0]].metadata.label != "background") {
@@ -437,10 +438,10 @@ class Projector
           this.inspectorPanel.numNN
         );*/
         if (this.dataSet.points[newSelectedPointIndices[0]].metadata.label != "background")
-        neighbors[0] = {
-          index: newSelectedPointIndices[0],
-          dist: 0
-        };
+          neighbors[0] = {
+            index: newSelectedPointIndices[0],
+            dist: 0
+          };
         this.metadataCard.updateMetadata(
           this.dataSet.points[newSelectedPointIndices[0]].metadata
         );
@@ -514,6 +515,7 @@ class Projector
         projectorConfigUrl = this.projectorConfigJsonPath;
       }
       this.dataProvider = new DemoDataProvider(projectorConfigUrl);
+      console.log('this.dataProvider', this.dataProvider)
     } else if (this.servingMode === 'server') {
       if (!this.routePrefix) {
         throw 'route-prefix is a required parameter';
@@ -605,6 +607,27 @@ class Projector
         (nightModeButton as any).active
       );
     });
+    let hiddenBackground = this.$$('#hiddenBackground');
+    hiddenBackground.addEventListener('click', () => {
+      for (let i = 0; i < this.dataSet.points.length; i++) {
+        const point = this.dataSet.points[i];
+        if (point.metadata[this.selectedLabelOption]) {
+          let hoverText = point.metadata[this.selectedLabelOption].toString();
+          if (hoverText == 'background') {
+            if ((hiddenBackground as any).active) {
+              point.color = '#ffffff'
+            } else {
+              point.color = point.DVI_color[1]
+            }
+          }
+        }
+      }
+      this.projectorScatterPlotAdapter.scatterPlot.render()
+      // this.projectorScatterPlotAdapter.scatterPlot.hiddenBackground(
+      //   (hiddenBackground as any).active,
+      // );
+    })
+
     let editModeButton = this.$$('#editMode');
     editModeButton.addEventListener('click', (event) => {
       this.editMode = (editModeButton as any).active;
@@ -771,69 +794,82 @@ class Projector
   /**
    * query for indices in inspector panel
    */
-  query(query: string, inRegexMode: boolean, fieldName: string, currPredicates:{[key:string]: any},iteration:number,
-              callback:(indices:any)=>void){
+  query(query: string, inRegexMode: boolean, fieldName: string, currPredicates: { [key: string]: any }, iteration: number, confidenceThresholdFrom: any, confidenceThresholdTo: any,
+    callback: (indices: any) => void) {
 
-    var dummyCurrPredicates: {[key:string]:any}={};
+    let confidenceThreshold = []
+    console.log('confidenceThresholdFrom',confidenceThresholdFrom,confidenceThresholdTo)
+    var dummyCurrPredicates: { [key: string]: any } = {};
     Object.keys(currPredicates).forEach((key) => {
       dummyCurrPredicates[key] = currPredicates[key]
     });
+    
     dummyCurrPredicates[fieldName] = query;
-    // const msgId = logging.setModalMessage('Querying...');
+    if(confidenceThresholdFrom || confidenceThresholdTo){
+      dummyCurrPredicates['confidence'] = [Number(confidenceThresholdFrom), Number(confidenceThresholdTo)]
+    }
+    const msgId = logging.setModalMessage('Querying...');
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     fetch(`http://${this.DVIServer}/query`, {
-        method: 'POST',
-        body: JSON.stringify({"predicates": dummyCurrPredicates, "content_path":this.dataSet.DVIsubjectModelPath,
-        "iteration":iteration}),
-        headers: headers,
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        const indices = data.selectedPoints;
-        callback(indices);
+      method: 'POST',
+      body: JSON.stringify({
+        "predicates": dummyCurrPredicates, "content_path": this.dataSet.DVIsubjectModelPath,
+        "iteration": iteration
+      }),
+      headers: headers,
+      mode: 'cors'
+    }).then(response => response.json()).then(data => {
+      const indices = data.selectedPoints;
+      logging.setModalMessage(null, msgId);
+      callback(indices);
     }).catch(error => {
-        logging.setErrorMessage('querying for indices');
-        callback(null);
+      logging.setErrorMessage('querying for indices');
+      callback(null);
     });
   }
 
   /**
    * query for predicates
    */
-  simpleQuery(predicates:{[key:string]: any},iteration:number){
+  simpleQuery(predicates: { [key: string]: any }, iteration: number) {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     fetch(`http://${this.DVIServer}/query`, {
-        method: 'POST',
-        body: JSON.stringify({"predicates": predicates, "content_path":this.dataSet.DVIsubjectModelPath,
-        "iteration":iteration}),
-        headers: headers,
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        const indices = data.selectedPoints;
-        console.log("response",indices.length);
-        this.inspectorPanel.filteredPoints = indices;
+      method: 'POST',
+      body: JSON.stringify({
+        "predicates": predicates, "content_path": this.dataSet.DVIsubjectModelPath,
+        "iteration": iteration
+      }),
+      headers: headers,
+      mode: 'cors'
+    }).then(response => response.json()).then(data => {
+      const indices = data.selectedPoints;
+      console.log("response", indices.length);
+      this.inspectorPanel.filteredPoints = indices;
     }).catch(error => {
-        logging.setErrorMessage('querying for indices');
+      logging.setErrorMessage('querying for indices');
     });
   }
-  saveDVISelection(indices:number[],callback:(msg:string)=>void){
+  saveDVISelection(indices: number[], callback: (msg: string) => void) {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     fetch(`http://${this.DVIServer}/saveDVIselections`, {
-        method: 'POST',
-        body: JSON.stringify({"newIndices": indices, "content_path":this.dataSet.DVIsubjectModelPath,
-        "iteration":this.iteration}),
-        headers: headers,
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        const msg = data.message;
-        callback(msg);
+      method: 'POST',
+      body: JSON.stringify({
+        "newIndices": indices, "content_path": this.dataSet.DVIsubjectModelPath,
+        "iteration": this.iteration
+      }),
+      headers: headers,
+      mode: 'cors'
+    }).then(response => response.json()).then(data => {
+      const msg = data.message;
+      callback(msg);
     }).catch(error => {
-        logging.setErrorMessage('saving indices');
+      logging.setErrorMessage('saving indices');
     });
   }
 
