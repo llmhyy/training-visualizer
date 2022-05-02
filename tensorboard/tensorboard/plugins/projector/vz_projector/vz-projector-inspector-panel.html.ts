@@ -312,7 +312,11 @@ export const template = html`
   </div>
 
 
+
   <div class="results">
+  <div id="result-img">
+  <img id="resultImg" height="100px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFU"/>
+  </div>
     <div class="nn" style="display: none">
       <div class="neighbors">
         <div class="neighbors-options">

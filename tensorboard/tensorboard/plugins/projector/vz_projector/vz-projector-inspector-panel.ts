@@ -88,6 +88,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private sentButton: HTMLButtonElement;
   private showButton: HTMLButtonElement;
   private selectinMessage: HTMLElement;
+  private resultImg: HTMLElement;
 
   private limitMessage: HTMLDivElement;
   private _currentNeighbors: any;
@@ -114,6 +115,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.sentButton = this.$$('.sent') as HTMLButtonElement;
     this.showButton = this.$$('.show') as HTMLButtonElement;
     this.selectinMessage = this.$$('.boundingBoxSelection') as HTMLElement;
+
+    this.resultImg = this.$$('#resultImg') as HTMLAnchorElement;
 
     this.limitMessage = this.$$('.limit-msg') as HTMLDivElement;
     this.searchBox = this.$$('#search-box') as any; // ProjectorInput
@@ -272,6 +275,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       };
     });
   }
+
   private addContext(context: string) {
     if (this.displayContexts.indexOf(context) === -1) {
       this.displayContexts.push(context);
@@ -439,6 +443,15 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       neighborElementLink.onclick = () => {
         this.projectorEventContext.notifySelectionChanged([neighbor.index]);
       };
+    }
+  }
+  updateResImg(context:any){
+    console.log('context',context, this.resultImg)
+    if(context){
+      this.resultImg.setAttribute("style","display:block;")
+      this.resultImg.setAttribute('src',context)
+    } else{
+      this.resultImg.setAttribute("style","display:none;")
     }
   }
   private updateFilterButtons(numPoints: number) {

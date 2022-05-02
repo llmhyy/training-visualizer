@@ -344,6 +344,7 @@ class Projector
    * Used by clients to indicate that a selection has occurred.
    */
   notifySelectionChanged(newSelectedPointIndices: number[], selectMode?: boolean) {
+    console.log('newSelectedPointIndicesnew',newSelectedPointIndices,selectMode)
     let neighbors: knn.NearestEntry[] = [];
     if (
       this.editMode && // point selection toggle in existing selection
@@ -431,6 +432,10 @@ class Projector
       // normal selection mode
       this.selectedPointIndices = newSelectedPointIndices;
       if (newSelectedPointIndices.length === 1 && this.dataSet.points[newSelectedPointIndices[0]].metadata.label != "background") {
+        this.dataSet.getSpriteImage(this.selectedPointIndices[0],(imgData:any)=>{
+          const src = 'data:image/png;base64,' + imgData.imgUrl
+          this.inspectorPanel.updateResImg(src)  
+        })
         /*
         neighbors = this.dataSet.findNeighbors(
           newSelectedPointIndices[0],
@@ -446,6 +451,7 @@ class Projector
           this.dataSet.points[newSelectedPointIndices[0]].metadata
         );
       } else {
+        this.inspectorPanel.updateResImg(null)  
         this.metadataCard.updateMetadata(null);
       }
     }

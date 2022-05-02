@@ -321,6 +321,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       }
     });*/
     this.previousDVIButton.addEventListener('click', () => {
+      const msgId = logging.setModalMessage('loading...');
       this.nextDVIButton.disabled = true;
       this.previousDVIButton.disabled = true;
       this.jumpDVIButton.disabled = true;
@@ -357,11 +358,13 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
         if(this.dataSet.tSNEIteration > 1) {
             this.previousDVIButton.disabled = false;
           }
+        logging.setModalMessage(null, msgId);
         this.nextDVIButton.disabled = false;
         this.jumpDVIButton.disabled = false;
       });
     });
     this.nextDVIButton.addEventListener('click', ()=> {
+      const msgId = logging.setModalMessage('loading...');
       this.nextDVIButton.disabled = true;
       this.previousDVIButton.disabled = true;
       this.jumpDVIButton.disabled = true;
@@ -400,6 +403,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
           this.nextDVIButton.disabled = false;
           this.projector.onProjectionChanged();
         }
+        logging.setModalMessage(null, msgId);
         this.jumpDVIButton.disabled = false;
       });
     });

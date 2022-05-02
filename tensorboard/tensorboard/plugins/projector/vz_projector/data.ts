@@ -784,6 +784,28 @@ export class DataSet {
     }
   }
 
+  async getSpriteImage(id:any,stepCallback: (imgData: any) => void){
+    let headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    let str = 'test'
+    if(id%2){
+      str = 'test2'
+    }
+    await fetch(`http://${this.DVIServer}/sprite?path=${this.DVIsubjectModelPath}/${str}.png&index=${id}`, {
+        method: 'GET',
+        mode: 'cors'
+      }).then(response => response.json()).then(data => {
+        //const indices = data.selectedPoints;
+        console.log("response",data);
+       stepCallback(data);
+    }).catch(error => {
+      console.log("responseerr",error);
+        //logging.setErrorMessage('querying for indices');
+        //stepCallback(null, null, null, null, null);
+    });
+  }
+
   async projectTSNE(
     perplexity: number,
     learningRate: number,
