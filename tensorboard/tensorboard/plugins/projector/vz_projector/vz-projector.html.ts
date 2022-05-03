@@ -317,7 +317,7 @@ export const template = html`
           id="hiddenBackground"
           alt="show background"
           toggles
-          icon="image:brightness-2"
+          icon="image:texture"
           ></paper-icon-button>
           <paper-tooltip
             for="hiddenBackground"
@@ -345,7 +345,7 @@ export const template = html`
           id="triangleMode"
           alt="Enable/disable triangle mode"
           toggles
-          icon="font-download"
+          icon="dns"
         ></paper-icon-button>
         <paper-tooltip
           for="triangleMode"

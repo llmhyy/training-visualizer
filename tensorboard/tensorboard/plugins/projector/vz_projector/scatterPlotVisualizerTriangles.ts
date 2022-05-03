@@ -213,7 +213,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     this.geometry.addAttribute('color', colors);
     let lettersSoFar = 0;
     for (let i = 0; i < pointCount; i++) {
-      const label = 'sh';
+      let label = 'sh';
       let leftOffset = 0;
       // Determine length of word in pixels.
       for (let j = 0; j < label.length; j++) {
@@ -228,15 +228,16 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
         let right = (leftOffset + letterWidth) / scale;
         let left = leftOffset / scale;
         let top = FONT_SIZE / scale;
-        if(i<5000){
+        if(i<8000){
+          //矩形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
-
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, top);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right, top);
         }else{
+          //三角形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
