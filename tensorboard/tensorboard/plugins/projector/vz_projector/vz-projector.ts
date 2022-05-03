@@ -642,6 +642,13 @@ class Projector
     labels3DModeButton.addEventListener('click', () => {
       this.projectorScatterPlotAdapter.set3DLabelMode(this.get3DLabelMode());
     });
+    //
+    let triangleModeBtn = this.$$("#triangleMode");
+    triangleModeBtn.addEventListener('click',()=>{
+      console.log('trangle?:' ,(triangleModeBtn as any).active)
+      this.projectorScatterPlotAdapter.setTriangleMode((triangleModeBtn as any).active)
+    })
+
     window.addEventListener('resize', () => {
       this.projectorScatterPlotAdapter.resize();
     });

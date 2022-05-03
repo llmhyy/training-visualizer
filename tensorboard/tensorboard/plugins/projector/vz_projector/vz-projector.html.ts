@@ -340,6 +340,20 @@ export const template = html`
             fit-to-visible-bounds
             >Enable/disable 3D labels mode</paper-tooltip
           >
+
+          <paper-icon-button
+          id="triangleMode"
+          alt="Enable/disable triangle mode"
+          toggles
+          icon="font-download"
+        ></paper-icon-button>
+        <paper-tooltip
+          for="triangleMode"
+          position="bottom"
+          animation-delay="0"
+          fit-to-visible-bounds
+          >Enable/disable triangle mode</paper-tooltip
+        >
           <div class="status-bar-panel">
             <div class="status-bar-entry">
               Points: <span class="numDataPoints">Loading...</span>

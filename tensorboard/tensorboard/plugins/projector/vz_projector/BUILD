@@ -30,6 +30,7 @@ tf_ts_library(
         "scatterPlotVisualizerCanvasLabels.ts",
         "scatterPlotVisualizerPolylines.ts",
         "scatterPlotVisualizerSprites.ts",
+        "scatterPlotVisualizerTriangles.ts",
         "styles.ts",
         "util.ts",
         "vector.ts",

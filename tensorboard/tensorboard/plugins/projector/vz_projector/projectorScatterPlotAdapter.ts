@@ -22,13 +22,14 @@ import {
   State,
   ProjectionComponents3D,
 } from './data';
-import {ProjectorEventContext} from './projectorEventContext';
-import {LabelRenderParams} from './renderContext';
-import {ScatterPlot} from './scatterPlot';
-import {ScatterPlotVisualizerSprites} from './scatterPlotVisualizerSprites';
-import {ScatterPlotVisualizer3DLabels} from './scatterPlotVisualizer3DLabels';
-import {ScatterPlotVisualizerCanvasLabels} from './scatterPlotVisualizerCanvasLabels';
-import {ScatterPlotVisualizerPolylines} from './scatterPlotVisualizerPolylines';
+import { ProjectorEventContext } from './projectorEventContext';
+import { LabelRenderParams } from './renderContext';
+import { ScatterPlot } from './scatterPlot';
+import { ScatterPlotVisualizerSprites } from './scatterPlotVisualizerSprites';
+import { ScatterPlotVisualizer3DLabels } from './scatterPlotVisualizer3DLabels';
+import { scatterPlotVisualizerTriangles } from './scatterPlotVisualizerTriangles'
+import { ScatterPlotVisualizerCanvasLabels } from './scatterPlotVisualizerCanvasLabels';
+import { ScatterPlotVisualizerPolylines } from './scatterPlotVisualizerPolylines';
 import * as knn from './knn';
 import * as vector from './vector';
 
@@ -97,6 +98,8 @@ export class ProjectorScatterPlotAdapter {
   private distanceMetric: DistanceFunction;
   private spriteVisualizer: ScatterPlotVisualizerSprites;
   private labels3DVisualizer: ScatterPlotVisualizer3DLabels;
+  private triangles: scatterPlotVisualizerTriangles;
+  private renderInTriangle: boolean = false;
   private canvasLabelsVisualizer: ScatterPlotVisualizerCanvasLabels;
   private polylineVisualizer: ScatterPlotVisualizerPolylines;
   constructor(
@@ -118,7 +121,7 @@ export class ProjectorScatterPlotAdapter {
         this.updateScatterPlotPositions();
         this.updateScatterPlotAttributes();
         this.scatterPlot.render();
-        console.log('selectedPointIndices:',this.selectedPointIndices);
+        console.log('selectedPointIndices:', this.selectedPointIndices);
       }
     );
     projectorEventContext.registerHoverListener((hoverPointIndex) => {
@@ -187,6 +190,14 @@ export class ProjectorScatterPlotAdapter {
     this.updateScatterPlotAttributes();
     this.scatterPlot.render();
   }
+
+  setTriangleMode(renderTriangle: boolean) {
+    this.renderInTriangle = renderTriangle
+    this.createVisualizers(false, renderTriangle);
+    this.updateScatterPlotAttributes();
+    this.scatterPlot.render();
+    // console.log('renderTriangle', renderTriangle)
+  }
   setLegendPointColorer(
     legendPointColorer: (ds: DataSet, index: number) => string
   ) {
@@ -221,7 +232,7 @@ export class ProjectorScatterPlotAdapter {
       ds,
       projectionComponents
     );
-    this.scatterPlot.setPointPositions(newPositions, this.projection == null? 0 : this.projection.dataSet.DVICurrentRealDataNumber);
+    this.scatterPlot.setPointPositions(newPositions, this.projection == null ? 0 : this.projection.dataSet.DVICurrentRealDataNumber);
   }
   updateScatterPlotAttributes() {
     if (this.projection == null) {
@@ -728,7 +739,7 @@ export class ProjectorScatterPlotAdapter {
     }
     this.scatterPlot.setCameraParametersForNextCameraCreation(null, false);
   }
-  private createVisualizers(inLabels3DMode: boolean) {
+  private createVisualizers(inLabels3DMode: boolean, renderInTriangle?: boolean) {
     const ds = this.projection == null ? null : this.projection.dataSet;
     const scatterPlot = this.scatterPlot;
     scatterPlot.removeAllVisualizers();
@@ -741,6 +752,12 @@ export class ProjectorScatterPlotAdapter {
       this.labels3DVisualizer.setLabelStrings(
         this.generate3DLabelsArray(ds, this.labelPointAccessor)
       );
+    } else if (renderInTriangle) {
+      this.triangles = new scatterPlotVisualizerTriangles();
+   
+      // this.triangles.setLabelStrings(
+      //   this.generate3DLabelsArray(ds, this.labelPointAccessor)
+      // );
     } else {
       this.spriteVisualizer = new ScatterPlotVisualizerSprites();
       scatterPlot.addVisualizer(this.spriteVisualizer);
@@ -755,6 +772,9 @@ export class ProjectorScatterPlotAdapter {
     }
     if (this.labels3DVisualizer) {
       scatterPlot.addVisualizer(this.labels3DVisualizer);
+    }
+    if(this.renderInTriangle){
+      scatterPlot.addVisualizer(this.triangles)
     }
     if (this.canvasLabelsVisualizer) {
       scatterPlot.addVisualizer(this.canvasLabelsVisualizer);
