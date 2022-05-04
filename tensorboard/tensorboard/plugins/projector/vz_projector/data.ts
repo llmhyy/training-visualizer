@@ -1053,6 +1053,7 @@ export class DataSet {
                 logging.setModalMessage(null, UMAP_MSG_ID);
                 this.hasUmapRun = true;
                 stepCallback(currentEpoch, bg);
+                //@ts-ignore
                 resolve();
       });
     });

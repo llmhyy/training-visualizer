@@ -59,6 +59,9 @@ const POINT_SCALE_HOVER_NEW_SELECTION = 2.4;
 const LABELS_3D_COLOR_UNSELECTED = 0xffffff;
 const LABELS_3D_COLOR_NO_SELECTION = 0xffffff;
 
+const TIR_COLOR_UNSELECTED = 0xe3e3e3;
+const TIR_COLOR_SELECTED = 0xfa6666;
+
 const SPRITE_IMAGE_COLOR_UNSELECTED = 0xffffff;
 const SPRITE_IMAGE_COLOR_NO_SELECTION = 0xffffff;
 
@@ -252,7 +255,8 @@ export class ProjectorScatterPlotAdapter {
       neighbors,
       hoverIndex,
       this.renderLabelsIn3D,
-      this.getSpriteImageMode()
+      this.getSpriteImageMode(),
+      this.renderInTriangle
     );
     const pointScaleFactors = this.generatePointScaleFactorArray(
       dataSet,
@@ -625,7 +629,8 @@ export class ProjectorScatterPlotAdapter {
     neighborsOfFirstPoint: knn.NearestEntry[],
     hoverPointIndex: number,
     label3dMode: boolean,
-    spriteImageMode: boolean
+    spriteImageMode: boolean,
+    renderInTriangle: boolean
   ): Float32Array {
     if (ds == null) {
       return new Float32Array(0);
@@ -647,42 +652,53 @@ export class ProjectorScatterPlotAdapter {
     }
     // Give all points the unselected color.
     {
-      const n = ds.points.length;
-      let dst = 0;
-      if (selectedPointCount > 0) {
-        const c = new THREE.Color(unselectedColor);
-        for (let i = 0; i < n; ++i) {
-          colors[dst++] = c.r;
-          colors[dst++] = c.g;
-          colors[dst++] = c.b;
-        }
-      } else {
-        if (legendPointColorer != null) {
+      
+        const n = ds.points.length;
+        let dst = 0;
+        if (selectedPointCount > 0 && !renderInTriangle) {
+          const c = new THREE.Color(unselectedColor);
           for (let i = 0; i < n; ++i) {
-            const c = new THREE.Color(legendPointColorer(ds, i));
             colors[dst++] = c.r;
             colors[dst++] = c.g;
             colors[dst++] = c.b;
           }
         } else {
-          const c = new THREE.Color(noSelectionColor);
-          for (let i = 0; i < n; ++i) {
-            colors[dst++] = c.r;
-            colors[dst++] = c.g;
-            colors[dst++] = c.b;
+          if (legendPointColorer != null) {
+            for (let i = 0; i < n; ++i) {
+              const c = new THREE.Color(legendPointColorer(ds, i));
+              colors[dst++] = c.r;
+              colors[dst++] = c.g;
+              colors[dst++] = c.b;
+            }
+          } else {
+            const c = new THREE.Color(noSelectionColor);
+            for (let i = 0; i < n; ++i) {
+              colors[dst++] = c.r;
+              colors[dst++] = c.g;
+              colors[dst++] = c.b;
+            }
           }
         }
-      }
     }
     // Color the selected points.
     {
       const n = selectedPointCount;
       const c = new THREE.Color(POINT_COLOR_SELECTED);
-      for (let i = 0; i < n; ++i) {
-        let dst = selectedPointIndices[i] * 3;
-        colors[dst++] = c.r;
-        colors[dst++] = c.g;
-        colors[dst++] = c.b;
+      if(!renderInTriangle){
+        for (let i = 0; i < n; ++i) {
+          let dst = selectedPointIndices[i] * 3;
+          colors[dst++] = c.r;
+          colors[dst++] = c.g;
+          colors[dst++] = c.b;
+        }
+      }else{
+        // console.log('selectedPointIndices',selectedPointIndices)
+        for (let i = 0; i < n; ++i) {
+            let dst = selectedPointIndices[i] * 3;
+            colors[dst++] = c.r;
+            colors[dst++] = c.g;
+            colors[dst++] = c.b;
+        }
       }
     }
     // Color the neighbors.
@@ -754,10 +770,7 @@ export class ProjectorScatterPlotAdapter {
       );
     } else if (renderInTriangle) {
       this.triangles = new scatterPlotVisualizerTriangles();
-   
-      // this.triangles.setLabelStrings(
-      //   this.generate3DLabelsArray(ds, this.labelPointAccessor)
-      // );
+      this.triangles.setSelectedPoint(this.selectedPointIndices);
     } else {
       this.spriteVisualizer = new ScatterPlotVisualizerSprites();
       scatterPlot.addVisualizer(this.spriteVisualizer);

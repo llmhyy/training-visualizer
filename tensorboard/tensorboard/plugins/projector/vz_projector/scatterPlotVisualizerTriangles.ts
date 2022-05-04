@@ -18,6 +18,11 @@ import { RenderContext } from './renderContext';
 import { ScatterPlotVisualizer } from './scatterPlotVisualizer';
 import * as util from './util';
 
+declare global {
+  interface Window {
+    selectedList: any,
+  }
+}
 const FONT_SIZE = 80;
 const ONE_OVER_FONT_SIZE = 1 / FONT_SIZE;
 const LABEL_SCALE = 2.2; // at 1:1 texel/pixel ratio
@@ -101,11 +106,12 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
   private renderColors: Float32Array;
   private material: THREE.ShaderMaterial;
   private uniforms: any;
-  private labelsMesh: THREE.Mesh;
+  private pointsMesh: THREE.Mesh;
   private positions: THREE.BufferAttribute;
   private totalVertexCount: number;
   private labelVertexMap: number[][];
   private glyphTexture: GlyphTexture;
+  private selectedIndexList: number[]
   private createGlyphTexture(): GlyphTexture {
     let canvas = document.createElement('canvas');
     canvas.width = MAX_CANVAS_DIMENSION;
@@ -169,6 +175,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     }
   }
   private createTriangles() {
+    window.selectedList = this.selectedIndexList
     if (this.worldSpacePointPositions == null) {
       return;
     }
@@ -197,96 +204,63 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     let posArray = new Float32Array(
       this.totalVertexCount * XYZ_ELEMENTS_PER_ENTRY
     );
-    let uvArray = new Float32Array(
-      this.totalVertexCount * UV_ELEMENTS_PER_ENTRY
-    );
     let colorsArray = new Float32Array(
       this.totalVertexCount * RGB_ELEMENTS_PER_ENTRY
     );
     let positionObject = new THREE.BufferAttribute(posArray, 2);
-    let uv = new THREE.BufferAttribute(uvArray, UV_ELEMENTS_PER_ENTRY);
     let colors = new THREE.BufferAttribute(colorsArray, RGB_ELEMENTS_PER_ENTRY);
     this.geometry = new THREE.BufferGeometry();
     this.geometry.addAttribute('posObj', positionObject);
     this.geometry.addAttribute('position', this.positions);
     this.geometry.addAttribute('color', colors);
     let lettersSoFar = 0;
+    console.log('selectedIndexList',this.selectedIndexList)
     for (let i = 0; i < pointCount; i++) {
-      let label = 's';
       let leftOffset = 0;
+      leftOffset += this.glyphTexture.lengths[115];
       // Determine length of word in pixels.
-      for (let j = 0; j < label.length; j++) {
-        let letterCode = label.charCodeAt(j);
-        leftOffset += this.glyphTexture.lengths[letterCode];
-      }
       leftOffset /= -2; // centers text horizontally around the origin
-      for (let j = 0; j < label.length; j++) {
-        let letterCode = label.charCodeAt(j);
-        let letterWidth = this.glyphTexture.lengths[letterCode];
-        let scale = FONT_SIZE;
-        let right = (leftOffset + letterWidth) / scale;
-        let left = leftOffset / scale;
-        let top = 40 / scale;
-        if(i < 70000){
-          //矩形
+      let letterWidth = this.glyphTexture.lengths[115];
+      let scale = FONT_SIZE;
+      let right = (leftOffset + letterWidth) / scale;
+      let left = leftOffset / scale;
+      let top = 40 / scale;
+      if (this.selectedIndexList.indexOf(i) === -1) {
+        //矩形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right/16, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 10/scale);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, 10/scale);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right/16, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right/16, 10/scale);
-        }else{
-          //三角形
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right / 16, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 10 / scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, 10 / scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right / 16, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right / 16, 10 / scale);
+      } else {
+        //三角形
+        i === this.selectedIndexList[0]
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
-        }
-        // First triangle
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
-        // Second triangle
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, top);
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right, 0);
-        // positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right, top);
-        // Set UVs based on letter.
-        let uLeft = this.glyphTexture.offsets[letterCode];
-        let uRight = this.glyphTexture.offsets[letterCode] + letterWidth;
-        // Scale so that uvs lie between 0 and 1 on the texture.
-        uLeft /= MAX_CANVAS_DIMENSION;
-        uRight /= MAX_CANVAS_DIMENSION;
-        // let vTop = 1;
-        // let vBottom = 0;
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, uLeft, vTop);
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, uRight, vTop);
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, uLeft, vBottom);
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, uLeft, vBottom);
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, uRight, vTop);
-        // uv.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, uRight, vBottom);
-        lettersSoFar++;
-        leftOffset += letterWidth;
       }
+      if(this.selectedIndexList.length == 1 && i == this.selectedIndexList[0]){
+        console.log('reset')
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right*2, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 80 / scale);
+      }
+
+      lettersSoFar++;
+      leftOffset += letterWidth;
     }
+
     for (let i = 0; i < pointCount; i++) {
       const p = util.vector3FromPackedArray(this.worldSpacePointPositions, i);
       this.labelVertexMap[i].forEach((j) => {
         this.positions.setXYZ(j, p.x, p.y, p.z);
       });
     }
-    this.labelsMesh = new THREE.Mesh(this.geometry, this.material);
-    this.labelsMesh.frustumCulled = false;
-
-    var geom = new THREE.Geometry();
-    var v1 = new THREE.Vector3(0, 0, 0);
-    var v2 = new THREE.Vector3(30, 0, 0);
-    var v3 = new THREE.Vector3(30, 30, 0);
-    geom.vertices.push(v1);
-    geom.vertices.push(v2);
-    geom.vertices.push(v3);
-    geom.faces.push(new THREE.Face3(0, 1, 2));
-    geom.computeFaceNormals();
-    var mesh = new THREE.Mesh(geom, new THREE.MeshNormalMaterial());
-    this.scene.add(this.labelsMesh);
+    this.pointsMesh = new THREE.Mesh(this.geometry, this.material);
+    this.pointsMesh.frustumCulled = false;
+    console.log(this.geometry,this.pointsMesh)
+    this.scene.add(this.pointsMesh);
   }
   private colorLabels(pointColors: Float32Array) {
     if (
@@ -317,11 +291,11 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     this.scene = scene;
   }
   dispose() {
-    if (this.labelsMesh) {
+    if (this.pointsMesh) {
       if (this.scene) {
-        this.scene.remove(this.labelsMesh);
+        this.scene.remove(this.pointsMesh);
       }
-      this.labelsMesh = null;
+      this.pointsMesh = null;
     }
     if (this.geometry) {
       this.geometry.dispose();
@@ -367,5 +341,8 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
   //   this.labelStrings = labelStrings;
   //   this.dispose();
   // }
+  setSelectedPoint(selectedIndexList:number[]){
+    this.selectedIndexList = selectedIndexList
+  }
   onResize(newWidth: number, newHeight: number) { }
 }
