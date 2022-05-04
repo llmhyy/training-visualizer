@@ -137,7 +137,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     let numTotalLetters = 0;
     this.labelVertexMap = [];
     for (let i = 0; i < pointCount; i++) {
-      const label = '1223';
+      const label = '13';
       let vertsArray: number[] = [];
       for (let j = 0; j < label.length; j++) {
         for (let k = 0; k < VERTICES_PER_GLYPH; k++) {
@@ -147,7 +147,6 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
       }
       this.labelVertexMap.push(vertsArray);
     }
-    console.log(this.labelVertexMap)
     this.totalVertexCount = numTotalLetters * VERTICES_PER_GLYPH;
   }
   private createColorBuffers(pointCount: number) {
@@ -213,7 +212,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     this.geometry.addAttribute('color', colors);
     let lettersSoFar = 0;
     for (let i = 0; i < pointCount; i++) {
-      let label = 'sh';
+      let label = 's';
       let leftOffset = 0;
       // Determine length of word in pixels.
       for (let j = 0; j < label.length; j++) {
@@ -227,15 +226,15 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
         let scale = FONT_SIZE;
         let right = (leftOffset + letterWidth) / scale;
         let left = leftOffset / scale;
-        let top = FONT_SIZE / scale;
-        if(i<8000){
+        let top = 40 / scale;
+        if(i < 70000){
           //矩形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, top);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right, top);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right/16, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 10/scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, 10/scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right/16, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right/16, 10/scale);
         }else{
           //三角形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
@@ -287,7 +286,6 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     geom.faces.push(new THREE.Face3(0, 1, 2));
     geom.computeFaceNormals();
     var mesh = new THREE.Mesh(geom, new THREE.MeshNormalMaterial());
-    console.log('this.labelsMesh', this.labelsMesh)
     this.scene.add(this.labelsMesh);
   }
   private colorLabels(pointColors: Float32Array) {

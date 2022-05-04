@@ -788,18 +788,28 @@ export class DataSet {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    let str = 'test'
-    if(id%2){
-      str = 'test2'
+    let str = 'img00'
+    let idnew = id
+    const msgId = logging.setModalMessage('Fetching sprite image...');
+    if(id>99992){
+      idnew = Math.round(Math.random()*9000); 
     }
-    await fetch(`http://${this.DVIServer}/sprite?path=${this.DVIsubjectModelPath}/${str}.png&index=${id}`, {
+    if(idnew<10){
+      str = `img0${idnew}`
+    }else{
+      str = `img${idnew}`
+    }
+
+    await fetch(`http://${this.DVIServer}/sprite?path=${this.DVIsubjectModelPath}/png/${str}.png&index=${id}`, {
         method: 'GET',
         mode: 'cors'
       }).then(response => response.json()).then(data => {
         //const indices = data.selectedPoints;
         console.log("response",data);
+        logging.setModalMessage(null, msgId);
        stepCallback(data);
     }).catch(error => {
+      logging.setModalMessage(null, msgId);
       console.log("responseerr",error);
         //logging.setErrorMessage('querying for indices');
         //stepCallback(null, null, null, null, null);

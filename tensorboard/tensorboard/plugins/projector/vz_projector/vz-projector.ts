@@ -344,7 +344,6 @@ class Projector
    * Used by clients to indicate that a selection has occurred.
    */
   notifySelectionChanged(newSelectedPointIndices: number[], selectMode?: boolean) {
-    console.log('newSelectedPointIndicesnew',newSelectedPointIndices,selectMode)
     let neighbors: knn.NearestEntry[] = [];
     if (
       this.editMode && // point selection toggle in existing selection
@@ -521,7 +520,6 @@ class Projector
         projectorConfigUrl = this.projectorConfigJsonPath;
       }
       this.dataProvider = new DemoDataProvider(projectorConfigUrl);
-      console.log('this.dataProvider', this.dataProvider)
     } else if (this.servingMode === 'server') {
       if (!this.routePrefix) {
         throw 'route-prefix is a required parameter';
@@ -645,7 +643,6 @@ class Projector
     //
     let triangleModeBtn = this.$$("#triangleMode");
     triangleModeBtn.addEventListener('click',()=>{
-      console.log('trangle?:' ,(triangleModeBtn as any).active)
       this.projectorScatterPlotAdapter.setTriangleMode((triangleModeBtn as any).active)
     })
 
@@ -811,7 +808,6 @@ class Projector
     callback: (indices: any) => void) {
 
     let confidenceThreshold = []
-    console.log('confidenceThresholdFrom',confidenceThresholdFrom,confidenceThresholdTo)
     var dummyCurrPredicates: { [key: string]: any } = {};
     Object.keys(currPredicates).forEach((key) => {
       dummyCurrPredicates[key] = currPredicates[key]
@@ -860,7 +856,6 @@ class Projector
       mode: 'cors'
     }).then(response => response.json()).then(data => {
       const indices = data.selectedPoints;
-      console.log("response", indices.length);
       this.inspectorPanel.filteredPoints = indices;
     }).catch(error => {
       logging.setErrorMessage('querying for indices');

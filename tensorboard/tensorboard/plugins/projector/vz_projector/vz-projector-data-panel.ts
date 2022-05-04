@@ -445,7 +445,6 @@ class DataPanel extends LegacyElementMixin(PolymerElement) {
   }
   @observe('selectedTensor')
   _selectedTensorChanged() {
-    console.log('909090')
     this.projector.updateDataSet(null, null, null);
     if (this.selectedTensor == null) {
       return;
