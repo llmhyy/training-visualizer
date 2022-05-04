@@ -460,7 +460,7 @@ def sprite_image():
     pic_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/cifar10.png'
     pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/new.png'
     left, upper, right, lower = 0, 0, 32, 32
-    left =  (i%245)*32
+    left =  (i*32)%7808
     upper = round(i/245)*32
     right = left+32
     lower = upper+32
