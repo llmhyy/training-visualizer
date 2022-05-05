@@ -331,7 +331,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       let hiddenBackground:any = this.$$('#hiddenBackground');
       if ((hiddenBackground as any).active) {
         console.log('click')
-        
+
         hiddenBackground.click()
       }
       hiddenBackground.active = false
@@ -415,6 +415,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       });
     });
     this.jumpDVIButton.addEventListener('click', ()=> {
+      const msgId = logging.setModalMessage('loading...');
       this.jumpDVIButton.disabled = true;
       if(this.iterationInput > this.dataSet.tSNETotalIter||this.iterationInput<1){
         logging.setErrorMessage("Invaild Input!", null);
@@ -462,6 +463,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
           this.nextDVIButton.disabled = false;
           this.projector.onProjectionChanged();
         }
+        logging.setModalMessage(null, msgId);
         this.jumpDVIButton.disabled = false;
       });
     });

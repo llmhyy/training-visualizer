@@ -12,6 +12,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+declare global{
+  interface Window{
+    hiddenBackground:boolean | false
+  }
+}
+
 import { PolymerElement } from '@polymer/polymer';
 import { customElement, observe, property } from '@polymer/decorators';
 import * as THREE from 'three';
@@ -613,6 +619,7 @@ class Projector
     });
     let hiddenBackground = this.$$('#hiddenBackground');
     hiddenBackground.addEventListener('click', () => {
+      window.hiddenBackground = (hiddenBackground as any).active
       for (let i = 0; i < this.dataSet.points.length; i++) {
         const point = this.dataSet.points[i];
         if (point.metadata[this.selectedLabelOption]) {

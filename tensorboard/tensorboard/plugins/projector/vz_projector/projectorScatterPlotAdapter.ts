@@ -65,6 +65,8 @@ const TIR_COLOR_SELECTED = 0xfa6666;
 const SPRITE_IMAGE_COLOR_UNSELECTED = 0xffffff;
 const SPRITE_IMAGE_COLOR_NO_SELECTION = 0xffffff;
 
+const HIDDEN_BACKGROUND_COLOR = 0xffffff
+
 const POLYLINE_START_HUE = 60;
 const POLYLINE_END_HUE = 360;
 const POLYLINE_SATURATION = 1;
@@ -635,6 +637,7 @@ export class ProjectorScatterPlotAdapter {
     if (ds == null) {
       return new Float32Array(0);
     }
+    console.log('ds',ds)
     const selectedPointCount =
       selectedPointIndices == null ? 0 : selectedPointIndices.length;
     const neighborCount =
@@ -652,52 +655,51 @@ export class ProjectorScatterPlotAdapter {
     }
     // Give all points the unselected color.
     {
-      
-        const n = ds.points.length;
-        let dst = 0;
-        if (selectedPointCount > 0 && !renderInTriangle) {
-          const c = new THREE.Color(unselectedColor);
+      const n = ds.points.length;
+      let dst = 0;
+      if (selectedPointCount > 0 && !renderInTriangle) {
+        let c = new THREE.Color(unselectedColor);
+        for (let i = 0; i < n; ++i) {
+          colors[dst++] = c.r;
+          colors[dst++] = c.g;
+          colors[dst++] = c.b;
+        }
+      } else {
+        if (legendPointColorer != null) {
           for (let i = 0; i < n; ++i) {
+            const c = new THREE.Color(legendPointColorer(ds, i));
             colors[dst++] = c.r;
             colors[dst++] = c.g;
             colors[dst++] = c.b;
           }
         } else {
-          if (legendPointColorer != null) {
-            for (let i = 0; i < n; ++i) {
-              const c = new THREE.Color(legendPointColorer(ds, i));
-              colors[dst++] = c.r;
-              colors[dst++] = c.g;
-              colors[dst++] = c.b;
-            }
-          } else {
-            const c = new THREE.Color(noSelectionColor);
-            for (let i = 0; i < n; ++i) {
-              colors[dst++] = c.r;
-              colors[dst++] = c.g;
-              colors[dst++] = c.b;
-            }
+          const c = new THREE.Color(noSelectionColor);
+          for (let i = 0; i < n; ++i) {
+            colors[dst++] = c.r;
+            colors[dst++] = c.g;
+            colors[dst++] = c.b;
           }
         }
+      }
     }
     // Color the selected points.
     {
       const n = selectedPointCount;
       const c = new THREE.Color(POINT_COLOR_SELECTED);
-      if(!renderInTriangle){
+      if (!renderInTriangle) {
         for (let i = 0; i < n; ++i) {
           let dst = selectedPointIndices[i] * 3;
           colors[dst++] = c.r;
           colors[dst++] = c.g;
           colors[dst++] = c.b;
         }
-      }else{
+      } else {
         // console.log('selectedPointIndices',selectedPointIndices)
         for (let i = 0; i < n; ++i) {
-            let dst = selectedPointIndices[i] * 3;
-            colors[dst++] = c.r;
-            colors[dst++] = c.g;
-            colors[dst++] = c.b;
+          let dst = selectedPointIndices[i] * 3;
+          colors[dst++] = c.r;
+          colors[dst++] = c.g;
+          colors[dst++] = c.b;
         }
       }
     }
@@ -713,6 +715,23 @@ export class ProjectorScatterPlotAdapter {
         colors[dst++] = c.r;
         colors[dst++] = c.g;
         colors[dst++] = c.b;
+      }
+    }
+    if (window.hiddenBackground) {
+      const n = ds.points.length;
+      let c = new THREE.Color(0xffffff);
+      for (let i = 0; i < n; i++) {
+        const point = ds.points[i];
+        if (point.metadata['label']) {
+          let hoverText = point.metadata['label'].toString();
+          if (hoverText == 'background') {
+              point.color = '#ffffff'
+              let dst = i*3
+              colors[dst++] = c.r;
+              colors[dst++] = c.g;
+              colors[dst++] = c.b;
+          }
+        }
       }
     }
     // Color the hover point.
@@ -786,7 +805,7 @@ export class ProjectorScatterPlotAdapter {
     if (this.labels3DVisualizer) {
       scatterPlot.addVisualizer(this.labels3DVisualizer);
     }
-    if(this.renderInTriangle){
+    if (this.renderInTriangle) {
       scatterPlot.addVisualizer(this.triangles)
     }
     if (this.canvasLabelsVisualizer) {
