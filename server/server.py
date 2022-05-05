@@ -451,12 +451,9 @@ def image_cut_save(path, left, upper, right, lower, save_path):
 @app.route('/sprite', methods=["POST","GET"])
 @cross_origin()
 def sprite_image():
-    path = request.args.get("path")
     index=request.args.get("index")
     print('index',index)
-    print(path)
     i = int(index)
-
     pic_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/cifar10.png'
     pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/new.png'
     left, upper, right, lower = 0, 0, 32, 32
