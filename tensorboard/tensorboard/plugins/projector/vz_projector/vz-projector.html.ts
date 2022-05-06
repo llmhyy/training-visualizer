@@ -240,6 +240,7 @@ export const template = html`
         border-top: 1px solid rgba(0, 0, 0, 0.1);
         overflow-y: auto;
         min-height: 360px;
+        display: none;
       }
 
       #toast {
@@ -343,7 +344,7 @@ export const template = html`
 
           <paper-icon-button
           id="triangleMode"
-          alt="Enable/disable triangle mode"
+          alt="Enable/disable selected by triangle"
           toggles
           icon="dns"
         ></paper-icon-button>

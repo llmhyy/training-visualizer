@@ -1,5 +1,5 @@
 /* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
-
+this.updateMetadataUI(this.spriteAndMetadata.stats, this.metadataFile);
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -15,7 +15,11 @@ limitations under the License.
 
 import {PolymerElement} from '@polymer/polymer';
 import {customElement, observe, property} from '@polymer/decorators';
-
+import {
+  ColorLegendThreshold,
+  ColorLegendRenderInfo,
+} from './vz-projector-legend';
+import * as d3 from 'd3';
 import {LegacyElementMixin} from '../../../components/polymer/legacy_element_mixin';
 import '../../../components/polymer/irons_and_papers';
 
@@ -29,6 +33,8 @@ import {
   Projection,
   ProjectionType,
   SpriteAndMetadataInfo,
+  ColorOption,
+  ColumnStats,
   State,
   TSNE_SAMPLE_SIZE,
   UMAP_SAMPLE_SIZE,
@@ -57,6 +63,11 @@ type Centroids = {
 @customElement('vz-projector-projections-panel')
 class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   static readonly template = template;
+
+  @property({type: String, notify: true})
+  selectedColorOptionName: string;
+  @property({type: Boolean})
+  showForceCategoricalColorsCheckbox: boolean;
 
   @property({type: Boolean})
   pcaIs3d: boolean = true;
@@ -102,7 +113,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   temporalStatus: boolean = true; //true for keepSearchPredicate
 
   private projector: any; // Projector; type omitted b/c LegacyElement
-
+  private colorOptions: ColorOption[];
   private currentProjection: ProjectionType;
   private polymerChangesTriggerReprojection: boolean;
   private dataSet: DataSet;
@@ -139,6 +150,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   private customProjectionYUpInput: any; // ProjectorInput; type ommited
   private customProjectionYDownInput: any; // ProjectorInput; type ommited
 
+
+  private colorLegendRenderInfo: ColorLegendRenderInfo;
   /*Evaluation Information*/
   private nnTrain15: HTMLElement;
   private nnTest15: HTMLElement;
@@ -283,6 +296,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
         });
       }
     }
+
     /*
     this.runTsneButton.addEventListener('click', () => {
       if (this.dataSet.hasTSNERun) {
@@ -659,6 +673,39 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       : 'none';
     this.showTab('tsne');
   }
+  @observe('selectedColorOptionName')
+  _selectedColorOptionNameChanged() {
+    let colorOption: ColorOption;
+    for (let i = 0; i < this.colorOptions.length; i++) {
+      if (this.colorOptions[i].name === this.selectedColorOptionName) {
+        colorOption = this.colorOptions[i];
+        break;
+      }
+    }
+    if (!colorOption) {
+      return;
+    }
+    this.showForceCategoricalColorsCheckbox = !!colorOption.tooManyUniqueValues;
+    if (colorOption.map == null) {
+      this.colorLegendRenderInfo = null;
+    } else if (colorOption.items) {
+      let items = colorOption.items.map((item) => {
+        return {
+          color: colorOption.map(item.label),
+          label: item.label,
+          count: item.count,
+        };
+      });
+      this.colorLegendRenderInfo = {items, thresholds: null};
+    } else {
+      this.colorLegendRenderInfo = {
+        items: null,
+        thresholds: colorOption.thresholds,
+      };
+    }
+    this.projector.setSelectedColorOption(colorOption);
+  }
+
   @observe('pcaIs3d')
   _pcaDimensionToggleObserver() {
     this.setZDropdownEnabled(this.pcaIs3d);
@@ -674,8 +721,19 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   _DVITemporalStatusObserver(){
 
   }
-  metadataChanged(spriteAndMetadata: SpriteAndMetadataInfo) {
+  metadataChanged(spriteAndMetadata: SpriteAndMetadataInfo,metadataFile?: string) {
     // Project by options for custom projections.
+    if (metadataFile != null) {
+     // this.metadataFile = metadataFile;
+    }
+    this.updateMetadataUI(spriteAndMetadata.stats);
+    if (
+      this.selectedColorOptionName == null ||
+      this.colorOptions.filter((c) => c.name === this.selectedColorOptionName)
+        .length === 0
+    ) {
+      this.selectedColorOptionName = this.colorOptions[0].name;
+    }
     let searchByMetadataIndex = -1;
     this.searchByMetadataOptions = spriteAndMetadata.stats.map((stats, i) => {
       // Make the default label by the first non-numeric column.
@@ -687,6 +745,62 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.customSelectedSearchByMetadataOption = this.searchByMetadataOptions[
       Math.max(0, searchByMetadataIndex)
     ];
+  }
+  private updateMetadataUI(columnStats: ColumnStats[]){
+    const standardColorOption: ColorOption[] = [{name: 'No color map'}];
+    const metadataColorOption: ColorOption[] = columnStats
+      .filter((stats) => {
+        return !stats.tooManyUniqueValues || stats.isNumeric;
+      })
+      .map((stats) => {
+        let map;
+        let items: {
+          label: string;
+          count: number;
+        }[];
+        let thresholds: ColorLegendThreshold[];
+        let isCategorical = !stats.tooManyUniqueValues;
+        let desc;
+        if (isCategorical) {
+          const scale = d3.scaleOrdinal(d3.schemeCategory10);
+          let range = scale.range();
+          // Re-order the range.
+          let newRange = range.map((color, i) => {
+            let index = (i * 3) % range.length;
+            return range[index];
+          });
+          items = stats.uniqueEntries;
+          scale.range(newRange).domain(items.map((x) => x.label));
+          map = scale;
+          const len = stats.uniqueEntries.length;
+          desc =
+            `${len} ${len > range.length ? ' non-unique' : ''} ` + `colors`;
+        } else {
+          thresholds = [
+            {color: '#ffffdd', value: stats.min},
+            {color: '#1f2d86', value: stats.max},
+          ];
+          map = d3
+            .scaleLinear<string, string>()
+            .domain(thresholds.map((t) => t.value))
+            .range(thresholds.map((t) => t.color));
+          desc = 'gradient';
+        }
+        return {
+          name: stats.name,
+          desc: desc,
+          map: map,
+          items: items,
+          thresholds: thresholds,
+          tooManyUniqueValues: stats.tooManyUniqueValues,
+        };
+      });
+    if (metadataColorOption.length > 0) {
+      // Add a separator line between built-in color maps
+      // and those based on metadata columns.
+      standardColorOption.push({name: 'Metadata', isSeparator: true});
+    }
+    this.colorOptions = standardColorOption.concat(metadataColorOption);
   }
   public showTab(id: ProjectionType) {
     this.currentProjection = id;

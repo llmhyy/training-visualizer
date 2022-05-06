@@ -120,7 +120,6 @@ export const template = html`
 
       .container {
         padding: 20px;
-        max-height: 500px;
         overflow:auto;
       }
 
@@ -178,6 +177,27 @@ export const template = html`
         </div>
       </div>
       <div class="container">
+       <!-- Color by -->
+        <paper-dropdown-menu id="colorby" no-animations label="Color by">
+          <paper-listbox
+            attr-for-selected="value"
+            class="dropdown-content"
+            selected="{{selectedColorOptionName}}"
+            slot="dropdown-content"
+          >
+            <template is="dom-repeat" items="[[colorOptions]]">
+              <paper-item
+                class$="[[getSeparatorClass(item.isSeparator)]]"
+                value="[[item.name]]"
+                label="[[item.name]]"
+                disabled="[[item.isSeparator]]"
+              >
+                [[item.name]]
+                <span class="item-details">[[item.desc]]</span>
+              </paper-item>
+            </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
         <!-- UMAP Controls -->
         <div data-panel="umap" class="ink-panel-content">
           <div class="slider">
