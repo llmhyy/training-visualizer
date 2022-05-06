@@ -66,6 +66,10 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
 
   @property({type: String, notify: true})
   selectedColorOptionName: string;
+  @property({type: String, notify: true})
+  selectedLabelOption: string;
+  @property({type: String})
+  metadataEditorColumn: string;
   @property({type: Boolean})
   showForceCategoricalColorsCheckbox: boolean;
 
@@ -113,6 +117,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   temporalStatus: boolean = true; //true for keepSearchPredicate
 
   private projector: any; // Projector; type omitted b/c LegacyElement
+  private labelOptions: string[];
   private colorOptions: ColorOption[];
   private currentProjection: ProjectionType;
   private polymerChangesTriggerReprojection: boolean;
@@ -673,6 +678,10 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       : 'none';
     this.showTab('tsne');
   }
+  @observe('selectedLabelOption')
+  _selectedLabelOptionChanged() {
+    this.projector.setSelectedLabelOption(this.selectedLabelOption);
+  }
   @observe('selectedColorOptionName')
   _selectedColorOptionNameChanged() {
     let colorOption: ColorOption;
@@ -747,6 +756,30 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     ];
   }
   private updateMetadataUI(columnStats: ColumnStats[]){
+    // Label by options.
+    let labelIndex = -1;
+    this.labelOptions = columnStats.map((stats, i) => {
+      // Make the default label by the first non-numeric column.
+      if (!stats.isNumeric && labelIndex === -1) {
+        labelIndex = i;
+      }
+      return stats.name;
+    });
+    if (
+      this.selectedLabelOption == null ||
+      this.labelOptions.filter((name) => name === this.selectedLabelOption)
+        .length === 0
+    ) {
+      this.selectedLabelOption = this.labelOptions[Math.max(0, labelIndex)];
+    }
+    if (
+      this.metadataEditorColumn == null ||
+      this.labelOptions.filter((name) => name === this.metadataEditorColumn)
+        .length === 0
+    ) {
+      this.metadataEditorColumn = this.labelOptions[Math.max(0, labelIndex)];
+    }
+    //Color by options.
     const standardColorOption: ColorOption[] = [{name: 'No color map'}];
     const metadataColorOption: ColorOption[] = columnStats
       .filter((stats) => {

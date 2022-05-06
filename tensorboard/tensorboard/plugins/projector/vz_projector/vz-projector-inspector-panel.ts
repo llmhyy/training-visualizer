@@ -128,6 +128,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.boundingBoxSelection= [];
     this.currentBoundingBoxSelection = [];
     this.selectinMessage.innerText = "0 seleted.";
+    this.confidenceThresholdFrom = 0
+    this.confidenceThresholdTo= 1
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;

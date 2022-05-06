@@ -325,7 +325,7 @@ export const template = html`
             position="bottom"
             animation-delay="0"
             fit-to-visible-bounds
-            >hidden/show background</paper-tooltip
+            >Hidden/Show background</paper-tooltip
           >
 
           <paper-icon-button
@@ -353,7 +353,7 @@ export const template = html`
           position="bottom"
           animation-delay="0"
           fit-to-visible-bounds
-          >Enable/disable triangle mode</paper-tooltip
+          >Enable/disable selected by triangle</paper-tooltip
         >
           <div class="status-bar-panel">
             <div class="status-bar-entry">

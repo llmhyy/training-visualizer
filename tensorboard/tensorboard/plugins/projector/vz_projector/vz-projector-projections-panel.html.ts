@@ -98,6 +98,17 @@ export const template = html`
       .tsne-supervise-factor {
         margin-bottom: -8px;
       }
+      .colorlabel-container{
+        display:flex
+      }
+      #labelby {
+        width: 100px;
+        margin-right: 10px;
+      }
+  
+      #colorby {
+        width: calc(100% - 110px);
+      }
 
       #z-container {
         display: flex;
@@ -151,6 +162,9 @@ export const template = html`
       #total-variance {
         color: rgba(0, 0, 0, 0.7);
       }
+      table{
+        width: 276px;
+      }
       table, th, td {
         border: 1px solid black;
         padding: 15px;
@@ -177,6 +191,22 @@ export const template = html`
         </div>
       </div>
       <div class="container">
+      <div class="colorlabel-container">
+      <!-- Label by -->
+      <paper-dropdown-menu id="labelby" no-animations label="Label by">
+        <paper-listbox
+          attr-for-selected="value"
+          class="dropdown-content"
+          selected="{{selectedLabelOption}}"
+          slot="dropdown-content"
+        >
+          <template is="dom-repeat" items="[[labelOptions]]">
+            <paper-item value="[[item]]" label="[[item]]">
+              [[item]]
+            </paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
        <!-- Color by -->
         <paper-dropdown-menu id="colorby" no-animations label="Color by">
           <paper-listbox
@@ -198,6 +228,7 @@ export const template = html`
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
+        </div>
         <!-- UMAP Controls -->
         <div data-panel="umap" class="ink-panel-content">
           <div class="slider">
