@@ -225,7 +225,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
       let right = (leftOffset + letterWidth) / scale;
       let left = leftOffset / scale;
       let top = 40 / scale;
-      if (this.selectedIndexList.indexOf(i) === -1) {
+      if (this.selectedIndexList.indexOf(Math.floor(i/2)) === -1) {
         //矩形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right / 16, 0);

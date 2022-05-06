@@ -637,7 +637,6 @@ export class ProjectorScatterPlotAdapter {
     if (ds == null) {
       return new Float32Array(0);
     }
-    console.log('ds',ds)
     const selectedPointCount =
       selectedPointIndices == null ? 0 : selectedPointIndices.length;
     const neighborCount =
