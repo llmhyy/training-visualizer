@@ -123,10 +123,14 @@ export class ProjectorScatterPlotAdapter {
       (selectedPointIndices, neighbors) => {
         this.selectedPointIndices = selectedPointIndices;
         this.neighborsOfFirstSelectedPoint = neighbors;
+        if (this.renderInTriangle) {
+          if (this.triangles) {
+            this.triangles.setSelectedPoint(this.selectedPointIndices);
+          }
+        }
         this.updateScatterPlotPositions();
         this.updateScatterPlotAttributes();
         this.scatterPlot.render();
-        console.log('selectedPointIndices:', this.selectedPointIndices);
       }
     );
     projectorEventContext.registerHoverListener((hoverPointIndex) => {
@@ -724,11 +728,11 @@ export class ProjectorScatterPlotAdapter {
         if (point.metadata['label']) {
           let hoverText = point.metadata['label'].toString();
           if (hoverText == 'background') {
-              point.color = '#ffffff'
-              let dst = i*3
-              colors[dst++] = c.r;
-              colors[dst++] = c.g;
-              colors[dst++] = c.b;
+            point.color = '#ffffff'
+            let dst = i * 3
+            colors[dst++] = c.r;
+            colors[dst++] = c.g;
+            colors[dst++] = c.b;
           }
         }
       }
