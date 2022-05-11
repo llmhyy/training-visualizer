@@ -437,10 +437,6 @@ class Projector
       // normal selection mode
       this.selectedPointIndices = newSelectedPointIndices;
       if (newSelectedPointIndices.length === 1 && this.dataSet.points[newSelectedPointIndices[0]].metadata.label != "background") {
-        this.dataSet.getSpriteImage(this.selectedPointIndices[0],(imgData:any)=>{
-          const src = 'data:image/png;base64,' + imgData.imgUrl
-          this.inspectorPanel.updateResImg(src)  
-        })
         /*
         neighbors = this.dataSet.findNeighbors(
           newSelectedPointIndices[0],
@@ -452,11 +448,13 @@ class Projector
             index: newSelectedPointIndices[0],
             dist: 0
           };
-        this.metadataCard.updateMetadata(
-          this.dataSet.points[newSelectedPointIndices[0]].metadata
-        );
-      } else {
-        this.inspectorPanel.updateResImg(null)  
+          this.dataSet.getSpriteImage(this.selectedPointIndices[0],(imgData:any)=>{
+            let src = 'data:image/png;base64,' + imgData.imgUrl
+            this.metadataCard.updateMetadata(
+              this.dataSet.points[newSelectedPointIndices[0]].metadata , src
+            );
+          })
+      } else {  
         this.metadataCard.updateMetadata(null);
       }
     }

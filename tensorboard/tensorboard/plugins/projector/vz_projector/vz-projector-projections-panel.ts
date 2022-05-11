@@ -347,13 +347,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       if(this.dataSet.tSNEIteration <= 2) {
         this.previousDVIButton.disabled = true;
       }
-      let hiddenBackground:any = this.$$('#hiddenBackground');
-      if ((hiddenBackground as any).active) {
-        console.log('click')
-
-        hiddenBackground.click()
-      }
-      hiddenBackground.active = false
+      
       this.dataSet.projectDVI(this.dataSet.tSNEIteration - 1,this.projector.inspectorPanel.currentPredicate,
           (iteration: number|null, evaluation:any, new_selection:any[], indices:number[],totalIter?: number) => {
         /**

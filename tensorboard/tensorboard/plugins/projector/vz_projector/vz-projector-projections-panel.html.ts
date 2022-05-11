@@ -41,6 +41,7 @@ export const template = html`
       .two-way-toggle {
         display: flex;
         flex-direction: row;
+        align-items:center;
       }
 
       .two-way-toggle span {
@@ -88,6 +89,11 @@ export const template = html`
       .row {
         display: flex;
         justify-content: space-between;
+        margin-top: 10px;
+      }
+      .jump-dvi{
+        height: 36px;
+        margin-top: 16px;
       }
 
       .dropdown-item {
@@ -348,7 +354,7 @@ export const template = html`
               Next
             </button>
           </div>
-            <div class="row">  -- </div>
+            <div class="row">   </div>
             
             <div class="row">
                 <div class="iteration-editor">
@@ -360,10 +366,10 @@ export const template = html`
                 </div>
                 <button class="jump-dvi ink-button" title="Jump DVI">Jump</button>
             </div>
-          <p>Iteration: <span class="run-tsne-iter">0</span></p>
+          <p style="font-weight: 600;">Iteration: <span class="run-tsne-iter">0</span></p>
           <div>
               <table>
-                  <caption>Visualization Confidence</caption>
+                  <caption style="margin-bottom: 10px;">Visualization Confidence</caption>
                 <tr>
                   <td></td>
                   <td>train</td>

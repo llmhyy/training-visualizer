@@ -344,7 +344,7 @@ export const template = html`
 
           <paper-icon-button
           id="triangleMode"
-          alt="Enable/disable selected by triangle"
+          alt="Enable/disable selected triangle"
           toggles
           icon="dns"
         ></paper-icon-button>
@@ -353,7 +353,7 @@ export const template = html`
           position="bottom"
           animation-delay="0"
           fit-to-visible-bounds
-          >Enable/disable selected by triangle</paper-tooltip
+          >En/disable selected by triangle</paper-tooltip
         >
           <div class="status-bar-panel">
             <div class="status-bar-entry">

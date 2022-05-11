@@ -641,6 +641,7 @@ export class ProjectorScatterPlotAdapter {
     if (ds == null) {
       return new Float32Array(0);
     }
+    console.log('this.labelPointAccessor', this.labelPointAccessor)
     const selectedPointCount =
       selectedPointIndices == null ? 0 : selectedPointIndices.length;
     const neighborCount =
@@ -725,8 +726,8 @@ export class ProjectorScatterPlotAdapter {
       let c = new THREE.Color(0xffffff);
       for (let i = 0; i < n; i++) {
         const point = ds.points[i];
-        if (point.metadata['label']) {
-          let hoverText = point.metadata['label'].toString();
+        if (point.metadata[this.labelPointAccessor]) {
+          let hoverText = point.metadata[this.labelPointAccessor].toString();
           if (hoverText == 'background') {
             point.color = '#ffffff'
             let dst = i * 3
@@ -738,7 +739,11 @@ export class ProjectorScatterPlotAdapter {
       }
     }
     // Color the hover point.
-    if (hoverPointIndex != null) {
+    if (hoverPointIndex != null
+      && (!window.hiddenBackground 
+        || (window.hiddenBackground 
+        && ds.points[hoverPointIndex].metadata[this.labelPointAccessor].toString() !== 'background'))) 
+    {
       const c = new THREE.Color(POINT_COLOR_HOVER);
       let dst = hoverPointIndex * 3;
       colors[dst++] = c.r;

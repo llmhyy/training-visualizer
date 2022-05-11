@@ -28,7 +28,7 @@ class MetadataCard extends LegacyElementMixin(PolymerElement) {
         background-color: rgba(255, 255, 255, 0.9);
         box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
           0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
-        width: 270px;
+        width: 200px;
       }
 
       #header {
@@ -69,6 +69,10 @@ class MetadataCard extends LegacyElementMixin(PolymerElement) {
         font-size: 12px;
         padding: 3px 3px;
       }
+      .img-container{
+        margin-left: 10px;
+        padding-bottom: 10px;
+      }
 
       .metadata-value {
         word-wrap: anywhere; /* Firefox only -- word-wrap DNE in Chrome. anywhere DNE in Chrome */
@@ -97,6 +101,9 @@ class MetadataCard extends LegacyElementMixin(PolymerElement) {
               </div>
             </template>
           </div>
+          <div class="img-container">
+          <img id="metaImg" height="100px"/>
+          </div>
         </iron-collapse>
       </div>
     </template>
@@ -122,13 +129,15 @@ class MetadataCard extends LegacyElementMixin(PolymerElement) {
 
   private labelOption: string;
   private pointMetadata: PointMetadata;
+  private resultImg: HTMLElement;
+  
   /** Handles toggle of metadata-container. */
   _toggleMetadataContainer() {
     (this.$$('#metadata-container') as any).toggle();
     this.isCollapsed = !this.isCollapsed;
     this.set('collapseIcon', this.isCollapsed ? 'expand-more' : 'expand-less');
   }
-  updateMetadata(pointMetadata?: PointMetadata) {
+  updateMetadata(pointMetadata?: PointMetadata, src?:string) {
     this.pointMetadata = pointMetadata;
     this.hasMetadata = pointMetadata != null;
     if (pointMetadata) {
@@ -141,6 +150,17 @@ class MetadataCard extends LegacyElementMixin(PolymerElement) {
       }
       this.metadata = metadata;
       this.label = '' + this.pointMetadata[this.labelOption];
+      //img
+      setTimeout(()=>{
+        this.resultImg = this.$$('#metaImg') as HTMLAnchorElement;
+        console.log('outtt',src,this.resultImg)
+        if(src?.length){
+          this.resultImg?.setAttribute("style","display:block;")
+          this.resultImg?.setAttribute('src',src)
+        } else{
+          this.resultImg?.setAttribute("style","display:none;")
+        }
+      },100)
     }
   }
   setLabelOption(labelOption: string) {

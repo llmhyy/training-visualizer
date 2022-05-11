@@ -214,37 +214,38 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
     this.geometry.addAttribute('position', this.positions);
     this.geometry.addAttribute('color', colors);
     let lettersSoFar = 0;
-    console.log('selectedIndexList',this.selectedIndexList)
+    console.log('selectedIndexList',this.selectedIndexList,this.glyphTexture)
     for (let i = 0; i < pointCount; i++) {
       let leftOffset = 0;
-      leftOffset += this.glyphTexture.lengths[115];
+      leftOffset += this.glyphTexture.lengths[105];
       // Determine length of word in pixels.
       leftOffset /= -2; // centers text horizontally around the origin
-      let letterWidth = this.glyphTexture.lengths[115];
+      let letterWidth = this.glyphTexture.lengths[105];
       let scale = FONT_SIZE;
       let right = (leftOffset + letterWidth) / scale;
+      let triRight = (leftOffset + this.glyphTexture.lengths[115]) / scale;
       let left = leftOffset / scale;
       let top = 40 / scale;
       if (this.selectedIndexList.indexOf(Math.floor(i/2)) === -1) {
         //矩形
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right / 16, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right / 20, 0);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 10 / scale);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 3, left, 10 / scale);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right / 16, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right / 16, 10 / scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 4, right / 20, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 5, right / 20, 10 / scale);
       } else {
         //三角形
         i === this.selectedIndexList[0]
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, triRight, 20/scale);
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
       }
-      if(this.selectedIndexList.length == 1 && i == this.selectedIndexList[0]){
+      if(this.selectedIndexList.length == 1 && this.selectedIndexList.indexOf(Math.floor(i/2)) !== -1){
         console.log('reset')
         positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 0, left, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, right*2, 0);
-        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, 80 / scale);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 1, triRight*2, 0);
+        positionObject.setXY(lettersSoFar * VERTICES_PER_GLYPH + 2, left, top);
       }
 
       lettersSoFar++;

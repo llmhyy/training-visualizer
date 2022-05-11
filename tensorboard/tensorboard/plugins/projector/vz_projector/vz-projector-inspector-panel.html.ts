@@ -58,11 +58,19 @@ export const template = html`
         line-height: 20px;
     }
     .boundingbox-button{
-        display: flex;
+        // display: flex;
         margin-right: 10px;
-        width: 60px;
-        height: 30px;
+        margin-top: 10px;
+        // width: 60px;
+        // height: 30px;
         font-size: 13px;
+        border: none;
+        border-radius: 2px;
+        font-size: 13px;
+        padding: 10px;
+        min-width: 100px;
+        flex-shrink: 0;
+        background: #e3e3e3;
     }
 
 
@@ -305,6 +313,7 @@ export const template = html`
   </div>
   <div>
       <button class="boundingbox-button add">add</button>
+      
       <button class="boundingbox-button reset">reset</button>
       <button class="boundingbox-button sent">sent</button>
       <button class="boundingbox-button show">show</button>
@@ -314,9 +323,6 @@ export const template = html`
 
 
   <div class="results">
-  <div id="result-img">
-  <img id="resultImg" height="100px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFU"/>
-  </div>
     <div class="nn" style="display: none">
       <div class="neighbors">
         <div class="neighbors-options">
