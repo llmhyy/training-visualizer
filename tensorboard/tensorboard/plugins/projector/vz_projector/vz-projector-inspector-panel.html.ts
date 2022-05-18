@@ -49,17 +49,31 @@ export const template = html`
     }
     
     .search-button{
-        display: flex;
-        margin-right: 10px;
-        width: 60px;
-        height: 30px;
-        font-size: 13px;
-        margin-top: 20px;
-        line-height: 20px;
+      margin-right: 10px;
+      width: 258px;
+      height: 40px;
+      margin-top: 20px;
+      background: #e3e3e3;
+      line-height: 30px;
+      font-size: 14px;
+      border: none;
+      text-align: center;
+      cursor:pointer;
+    }
+    .search-button:hover{
+      background: #550831;
+      color:#fff;
+    }
+    button{
+      cursor:pointer;
+    }
+    button:hover{
+      background: #550831;
+      color:#fff;
     }
     .boundingbox-button{
         // display: flex;
-        margin-right: 10px;
+       //  margin-right: 10px;
         margin-top: 10px;
         font-size: 13px;
         border: none;
@@ -261,6 +275,11 @@ export const template = html`
       display: flex;
     }
 
+    .stop-container{
+      display: flex;
+      justify-content:space-between;
+    }
+
     .results {
       display: flex;
       flex-direction: column;
@@ -317,7 +336,6 @@ export const template = html`
       </div>
       </div>
       <button class="search-button search">search</button>
-
     <div>
     </div>
   </div>
@@ -331,21 +349,26 @@ export const template = html`
           >
           </paper-icon-button>
         </div>
-        <iron-collapse id="metadata-container">
+        <iron-collapse id="metadata-container" opened>
         <div class="confidence-threshold">
         <div class="threshold-container">
           <paper-input
-          value="{{confidenceThresholdFrom}}"
+          value="{{epochFrom}}"
           label="epoch from:"
           >
           </paper-input>
           <paper-input
-          value="{{confidenceThresholdTo}}"
+          value="{{epochTo}}"
           label="epoch to:"
           >
           </paper-input>
         </div>
-        <button class="boundingbox-button show-noisy-btn">show noisy points</button>
+        <button style="width: 240px;" class="boundingbox-button show-noisy-btn">play selected points animation</button>
+        <div class="stop-container"><p class="current-epoch">epoch: {{currentPlayedEpoch}}</p>
+        
+        <button class="boundingbox-button stop-animation-btn">
+        stop playing
+        </button></div>
         </div>
           <div class="img-container">
           <img id="metaImg" height="100px"/>

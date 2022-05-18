@@ -70,6 +70,15 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Number })
   confidenceThresholdTo: number
 
+  @property({ type: Number })
+  epochFrom: number
+
+  @property({ type: Number })
+  epochTo: number
+
+  @property({type: Number})
+  currentPlayedEpoch: number
+
   @property({ type: Boolean })
   spriteImagesAvailable: Boolean = true;
 
@@ -102,6 +111,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private selectinMessage: HTMLElement;
 
   private noisyBtn: HTMLButtonElement;
+  private stopBtn: HTMLButtonElement;
   private scatterPlotContainer: HTMLElement;
 
   private limitMessage: HTMLDivElement;
@@ -126,6 +136,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       '.clear-selection'
     ) as HTMLButtonElement;
     this.noisyBtn = this.$$('.show-noisy-btn') as HTMLButtonElement
+    this.stopBtn = this.$$('.stop-animation-btn') as HTMLButtonElement
+    
     this.searchButton = this.$$('.search') as HTMLButtonElement;
     this.addButton = this.$$('.add') as HTMLButtonElement;
     this.resetButton = this.$$('.reset') as HTMLButtonElement;
@@ -147,6 +159,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.selectinMessage.innerText = "0 seleted.";
     this.confidenceThresholdFrom = 0
     this.confidenceThresholdTo = 1
+    this.epochFrom = 1
+    this.epochTo = 1
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;
@@ -394,6 +408,9 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       return spriteElementImage;
     };
   }
+  updateCurrentPlayEpoch(num:number){
+    this.currentPlayedEpoch = num
+  }
   private updateNeighborsList(neighbors?: knn.NearestEntry[]) {
     neighbors = neighbors || this._currentNeighbors;
     this._currentNeighbors = neighbors;
@@ -547,7 +564,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     // Filtering dataset.
 
     this.noisyBtn.onclick = () =>{
-        this.projectorEventContext.setDynamicNoisy()
+      console.log(this.epochFrom,this.epochTo)
+        this.projectorEventContext.setDynamicNoisy(this.epochFrom,this.epochTo)
+        this.noisyBtn.disabled = true;
+        this.stopBtn.disabled = false;
+    }
+
+    this.stopBtn.onclick = () => {
+      this.projectorEventContext.setDynamicStop()
+      this.noisyBtn.disabled = false;
+      this.stopBtn.disabled = true;
     }
 
     this.setFilterButton.onclick = () => {

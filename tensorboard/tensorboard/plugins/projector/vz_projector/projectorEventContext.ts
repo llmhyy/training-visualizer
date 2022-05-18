@@ -41,7 +41,8 @@ export interface ProjectorEventContext {
    */
   notifySelectionChanged(newSelectedPointIndices: number[], selectMode?:boolean);
 
-  setDynamicNoisy();
+  setDynamicNoisy(epochFrom: number, epochTo: number);
+  setDynamicStop();
   /** Registers a callback to be invoked when the projection changes. */
   registerProjectionChangedListener(listener: ProjectionChangedListener);
   /** Notify listeners that a reprojection occurred. */

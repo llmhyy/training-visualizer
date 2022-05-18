@@ -143,7 +143,9 @@ class Projector
   private metadataCard: any;
   private statusBar: HTMLDivElement;
   private analyticsLogger: AnalyticsLogger;
-  private backgroundPoints: any
+  private backgroundPoints: any;
+
+  private timer: any;
 
   async ready() {
     super.ready();
@@ -168,6 +170,7 @@ class Projector
     this.distanceMetricChangedListeners = [];
     this.selectedPointIndices = [];
     this.neighborsOfFirstPoint = [];
+    this.timer = null
     this.editMode = false;
     this.dataPanel = this.$['data-panel'] as any; // DataPanel
     this.inspectorPanel = this.$['inspector-panel'] as any; // InspectorPanel
@@ -346,40 +349,32 @@ class Projector
 
   }
   ///
-  setDynamicNoisy() {
-    let flag: boolean = false
+  setDynamicNoisy(epochFrom,epochTo) {
+    let current = epochFrom
 
-    setInterval(() => {
-      flag = !flag
-      let temp = flag ? 1 : 2
-      console.log('dynamic', this.dataSet.points[0].DVI_projections[temp][0],this.selectedPointIndices)
-
-      
+    this.timer = setInterval(() => {
+      console.log('eee1233',epochFrom,epochTo,'current:',current)
+      this.inspectorPanel.updateCurrentPlayEpoch(current)
       for (let i = 0; i < this.dataSet.points.length; i++) {
         const point = this.dataSet.points[i];
-        if(this.selectedPointIndices.indexOf(i) !==-1){
-          point.projections['tsne-0'] = point.DVI_projections[temp][0];
-          point.projections['tsne-1'] = point.DVI_projections[temp][1];
+        if(!this.selectedPointIndices.length || this.selectedPointIndices.indexOf(i) !==-1){
+          point.projections['tsne-0'] = point.DVI_projections[current][0];
+          point.projections['tsne-1'] = point.DVI_projections[current][1];
           point.projections['tsne-2'] = 0;
         }
       }
-
-      // let projectionsList:any = [];
-      // for (let i = 0; i < this.dataSet.points.length; i++) {
-      //   const point = this.dataSet.points[i];
-      //   const projections: {
-      //     [key: string]: number;
-      //   } = {};
-      //   const keys = Object.keys(point.projections);
-      //   for (let j = 0; j < keys.length; ++j) {
-      //     projections[keys[j]] = point.projections[keys[j]];
-      //   }
-      //   projectionsList.push(projections);
-      // }
+      if(current<epochTo){
+        current++
+      }else{
+        current = epochFrom
+      }
       this.projectorScatterPlotAdapter.updateScatterPlotPositions(this.dataSet);
       this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
       this.projectorScatterPlotAdapter.scatterPlot.render()
-    }, 3000)
+    }, 1500)
+  }
+  setDynamicStop(){
+   clearInterval(this.timer)
   }
   /**
    * Used by clients to indicate that a selection has occurred.
