@@ -61,16 +61,15 @@ export const template = html`
         // display: flex;
         margin-right: 10px;
         margin-top: 10px;
-        // width: 60px;
-        // height: 30px;
         font-size: 13px;
         border: none;
         border-radius: 2px;
         font-size: 13px;
         padding: 10px;
-        min-width: 100px;
+        min-width: 110px;
         flex-shrink: 0;
         background: #e3e3e3;
+        cursor:pointer;
     }
 
 
@@ -178,6 +177,17 @@ export const template = html`
 
     .distance .options {
       float: right;
+    }
+
+    #query-header-container{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+    }
+    #metadata-container {
+      background: rgb(241 241 241);
+      padding: 10px;
     }
 
     .neighbor-image-controls {
@@ -312,8 +322,38 @@ export const template = html`
     </div>
   </div>
   <div>
+  <div id="query-container">
+      <div id="query-header-container">
+      <div id="query-header">Advanced Query</div>
+          <paper-icon-button
+            icon="[[collapseIcon]]"
+            on-tap="_toggleMetadataContainer"
+          >
+          </paper-icon-button>
+        </div>
+        <iron-collapse id="metadata-container">
+        <div class="confidence-threshold">
+        <div class="threshold-container">
+          <paper-input
+          value="{{confidenceThresholdFrom}}"
+          label="epoch from:"
+          >
+          </paper-input>
+          <paper-input
+          value="{{confidenceThresholdTo}}"
+          label="epoch to:"
+          >
+          </paper-input>
+        </div>
+        <button class="boundingbox-button show-noisy-btn">show noisy points</button>
+        </div>
+          <div class="img-container">
+          <img id="metaImg" height="100px"/>
+          </div>
+        </iron-collapse>
+  </div>
+  <div>
       <button class="boundingbox-button add">add</button>
-      
       <button class="boundingbox-button reset">reset</button>
       <button class="boundingbox-button sent">sent</button>
       <button class="boundingbox-button show">show</button>

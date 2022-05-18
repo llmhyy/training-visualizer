@@ -12,17 +12,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-import {PolymerElement} from '@polymer/polymer';
-import {customElement, observe, property} from '@polymer/decorators';
+import { PolymerElement } from '@polymer/polymer';
+import { customElement, observe, property } from '@polymer/decorators';
 
-import {LegacyElementMixin} from '../../../components/polymer/legacy_element_mixin';
+import { LegacyElementMixin } from '../../../components/polymer/legacy_element_mixin';
 import '../../../components/polymer/irons_and_papers';
 
-import {DistanceFunction, SpriteAndMetadataInfo, State} from './data';
-import {template} from './vz-projector-inspector-panel.html';
+import { DistanceFunction, SpriteAndMetadataInfo, State } from './data';
+import { template } from './vz-projector-inspector-panel.html';
 import './vz-projector-input';
-import {dist2color, normalizeDist} from './projectorScatterPlotAdapter';
-import {ProjectorEventContext} from './projectorEventContext';
+import { dist2color, normalizeDist } from './projectorScatterPlotAdapter';
+import { ProjectorEventContext } from './projectorEventContext';
+import { ScatterPlot } from './scatterPlot';
+
+import { ProjectorScatterPlotAdapter } from './projectorScatterPlotAdapter';
+
 import * as knn from './knn';
 import * as vector from './vector';
 import * as util from './util';
@@ -42,37 +46,45 @@ type SpriteMetadata = {
 class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   static readonly template = template;
 
-  @property({type: String})
+  @property({ type: String })
   selectedMetadataField: string;
 
-  @property({type: Array})
+  @property({ type: Array })
   metadataFields: Array<string>;
 
-  @property({type: String})
+  @property({ type: String })
   metadataColumn: string;
 
-  @property({type: Number})
+  @property({ type: Number })
   numNN: number = DEFAULT_NEIGHBORS;
 
-  @property({type: Object})
+  @property({ type: Object })
   spriteMeta: SpriteMetadata;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   showNeighborImages: boolean = true;
 
-  @property({type: Number})
+  @property({ type: Number })
   confidenceThresholdFrom: number
 
-  @property({type: Number})
+  @property({ type: Number })
   confidenceThresholdTo: number
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   spriteImagesAvailable: Boolean = true;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   noShow: Boolean = false;
 
+  @property({ type: Boolean })
+  isCollapsed: boolean = false;
+
+  @property({ type: String })
+  collapseIcon: string = 'expand-less';
+
   distFunc: DistanceFunction;
+
+  public scatterPlot: ScatterPlot;
   private projectorEventContext: ProjectorEventContext;
   private displayContexts: string[];
   private projector: any; // Projector; type omitted b/c LegacyElement
@@ -89,25 +101,31 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private showButton: HTMLButtonElement;
   private selectinMessage: HTMLElement;
 
+  private noisyBtn: HTMLButtonElement;
+  private scatterPlotContainer: HTMLElement;
+
   private limitMessage: HTMLDivElement;
   private _currentNeighbors: any;
   // save current predicates
-  private currentPredicate: {[key:string]: any}; // dictionary
+  private currentPredicate: { [key: string]: any }; // dictionary
   private queryIndices: number[];
   private searchPredicate: string;
   private searchInRegexMode: boolean;
-  private filterIndices:number[];
-  private searchFields:string[];
-  private boundingBoxSelection:number[];
-  private currentBoundingBoxSelection:number[];
+  private filterIndices: number[];
+  private searchFields: string[];
+  private boundingBoxSelection: number[];
+  private currentBoundingBoxSelection: number[];
+  private projectorScatterPlotAdapter: ProjectorScatterPlotAdapter;
 
   ready() {
     super.ready();
+
     this.resetFilterButton = this.$$('.reset-filter') as HTMLButtonElement;
     this.setFilterButton = this.$$('.set-filter') as HTMLButtonElement;
     this.clearSelectionButton = this.$$(
       '.clear-selection'
     ) as HTMLButtonElement;
+    this.noisyBtn = this.$$('.show-noisy-btn') as HTMLButtonElement
     this.searchButton = this.$$('.search') as HTMLButtonElement;
     this.addButton = this.$$('.add') as HTMLButtonElement;
     this.resetButton = this.$$('.reset') as HTMLButtonElement;
@@ -119,15 +137,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.limitMessage = this.$$('.limit-msg') as HTMLDivElement;
     this.searchBox = this.$$('#search-box') as any; // ProjectorInput
     this.displayContexts = [];
+    // show noisy points
 
     this.currentPredicate = {};
     this.queryIndices = [];
     this.filterIndices = [];
-    this.boundingBoxSelection= [];
+    this.boundingBoxSelection = [];
     this.currentBoundingBoxSelection = [];
     this.selectinMessage.innerText = "0 seleted.";
     this.confidenceThresholdFrom = 0
-    this.confidenceThresholdTo= 1
+    this.confidenceThresholdTo = 1
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;
@@ -139,7 +158,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     // TODO change them based on metadata fields
     this.searchFields = ["type", "label", "new_selection"]
     // TODO read real points length from dataSet
-    for(let i=0;i<60000;i++){
+    for (let i = 0; i < 60000; i++) {
       this.filterIndices.push(i);
     }
   }
@@ -161,6 +180,13 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   }
   private enableResetFilterButton(enabled: boolean) {
     this.resetFilterButton.disabled = !enabled;
+  }
+
+  /** Handles toggle of metadata-container. */
+  _toggleMetadataContainer() {
+    (this.$$('#metadata-container') as any).toggle();
+    this.isCollapsed = !this.isCollapsed;
+    this.set('collapseIcon', this.isCollapsed ? 'expand-more' : 'expand-less');
   }
 
   restoreUIFromBookmark(bookmark: State) {
@@ -337,7 +363,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     }
 
     let original_label = this.projector.dataSet.points[pointIndex].original_label;
-    if(original_label == undefined) {
+    if (original_label == undefined) {
       original_label = `Unknown`;
     }
 
@@ -346,7 +372,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   }
   private spriteImageRenderer() {
     const spriteImagePath = this.spriteMeta.imagePath;
-    const {aspectRatio, nCols} = this.spriteMeta as any;
+    const { aspectRatio, nCols } = this.spriteMeta as any;
     const paddingBottom = 100 / aspectRatio + '%';
     const backgroundSize = `${nCols * 100}% ${nCols * 100}%`;
     const backgroundImage = `url(${CSS.escape(spriteImagePath)})`;
@@ -489,6 +515,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       );
       this.updateNeighborsList(neighbors);
     };
+
     // Called whenever the search text input changes.
     // const updateInput = (value: string, inRegexMode: boolean) => {
     //   if (value == null || value.trim() === '') {
@@ -518,6 +545,11 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     //   updateInput(value, inRegexMode);
     // });
     // Filtering dataset.
+
+    this.noisyBtn.onclick = () =>{
+        this.projectorEventContext.setDynamicNoisy()
+    }
+
     this.setFilterButton.onclick = () => {
       // var indices = this.selectedPointIndices.concat(
       //   this.neighborsOfFirstPoint.map((n) => n.index)
@@ -532,7 +564,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.queryIndices = [];
       this.currentPredicate = {};
       this.filterIndices = [];
-      for(let i=0;i<projector.dataSet.DVICurrentRealDataNumber;i++){
+      for (let i = 0; i < projector.dataSet.DVICurrentRealDataNumber; i++) {
         this.filterIndices.push(i);
       }
       projector.resetFilterDataset();
@@ -552,15 +584,15 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.searchBox.registerInputChangedListener((value, inRegexMode) => {
       updateInput(value, inRegexMode);
     });
-    this.searchButton.onclick=()=>{
+    this.searchButton.onclick = () => {
       // read search box input and update indices
-       
+
       if (this.searchPredicate == null || this.searchPredicate.trim() === '') {
         this.searchBox.message = '';
         this.projectorEventContext.notifySelectionChanged([]);
         return;
       }
-      console.log(this.searchPredicate,this.selectedMetadataField, this.confidenceThresholdFrom,this.confidenceThresholdTo)
+      console.log(this.searchPredicate, this.selectedMetadataField, this.confidenceThresholdFrom, this.confidenceThresholdTo)
       projector.query(
         this.searchPredicate,
         this.searchInRegexMode,
@@ -569,8 +601,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         this.projector.iteration,
         this.confidenceThresholdFrom,
         this.confidenceThresholdTo,
-        (indices:any)=>{
-          if(indices != null){
+        (indices: any) => {
+          if (indices != null) {
             this.queryIndices = indices;
             if (this.queryIndices.length == 0) {
               this.searchBox.message = '0 matches.';
@@ -583,30 +615,30 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         }
       );
     }
-    this.addButton.onclick=()=>{
-      for(let i=0;i<this.currentBoundingBoxSelection.length;i++){
-        if(this.boundingBoxSelection.indexOf(this.currentBoundingBoxSelection[i])<0){
+    this.addButton.onclick = () => {
+      for (let i = 0; i < this.currentBoundingBoxSelection.length; i++) {
+        if (this.boundingBoxSelection.indexOf(this.currentBoundingBoxSelection[i]) < 0) {
           this.boundingBoxSelection.push(this.currentBoundingBoxSelection[i]);
         }
       }
-      this.selectinMessage.innerText =  String(this.boundingBoxSelection.length)+ " seleted.";
+      this.selectinMessage.innerText = String(this.boundingBoxSelection.length) + " seleted.";
     }
-    this.resetButton.onclick=()=>{
+    this.resetButton.onclick = () => {
       this.boundingBoxSelection = [];
       this.selectinMessage.innerText = "0 seleted.";
     }
-    this.sentButton.onclick=()=>{
-      this.projector.saveDVISelection(this.boundingBoxSelection,(msg:string)=>{
+    this.sentButton.onclick = () => {
+      this.projector.saveDVISelection(this.boundingBoxSelection, (msg: string) => {
         this.selectinMessage.innerText = msg;
         logging.setWarnMessage(msg, null);
       });
     }
-    this.showButton.onclick=()=>{
+    this.showButton.onclick = () => {
       this.projectorEventContext.notifySelectionChanged(this.boundingBoxSelection, true);
     }
   }
 
-  updateBoundingBoxSelection(indices:number[]){
+  updateBoundingBoxSelection(indices: number[]) {
     this.currentBoundingBoxSelection = indices;
   }
   private updateNumNN() {

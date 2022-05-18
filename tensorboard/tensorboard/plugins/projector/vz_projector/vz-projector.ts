@@ -12,9 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-declare global{
-  interface Window{
-    hiddenBackground:boolean | false
+declare global {
+  interface Window {
+    hiddenBackground: boolean | false,
+    DVIDataList: any
   }
 }
 
@@ -342,9 +343,43 @@ class Projector
     }
     this.dataSetFilterIndices = indices;
     this.dataSet.setDVIFilteredData(indices);
-    this.projectorScatterPlotAdapter.updateScatterPlotPositions();
-    this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
 
+  }
+  ///
+  setDynamicNoisy() {
+    let flag: boolean = false
+
+    setInterval(() => {
+      flag = !flag
+      let temp = flag ? 1 : 2
+      console.log('dynamic', this.dataSet.points[0].DVI_projections[temp][0],this.selectedPointIndices)
+
+      
+      for (let i = 0; i < this.dataSet.points.length; i++) {
+        const point = this.dataSet.points[i];
+        if(this.selectedPointIndices.indexOf(i) !==-1){
+          point.projections['tsne-0'] = point.DVI_projections[temp][0];
+          point.projections['tsne-1'] = point.DVI_projections[temp][1];
+          point.projections['tsne-2'] = 0;
+        }
+      }
+
+      // let projectionsList:any = [];
+      // for (let i = 0; i < this.dataSet.points.length; i++) {
+      //   const point = this.dataSet.points[i];
+      //   const projections: {
+      //     [key: string]: number;
+      //   } = {};
+      //   const keys = Object.keys(point.projections);
+      //   for (let j = 0; j < keys.length; ++j) {
+      //     projections[keys[j]] = point.projections[keys[j]];
+      //   }
+      //   projectionsList.push(projections);
+      // }
+      this.projectorScatterPlotAdapter.updateScatterPlotPositions(this.dataSet);
+      this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
+      this.projectorScatterPlotAdapter.scatterPlot.render()
+    }, 3000)
   }
   /**
    * Used by clients to indicate that a selection has occurred.
@@ -448,13 +483,13 @@ class Projector
             index: newSelectedPointIndices[0],
             dist: 0
           };
-          this.dataSet.getSpriteImage(this.selectedPointIndices[0],(imgData:any)=>{
-            let src = 'data:image/png;base64,' + imgData.imgUrl
-            this.metadataCard.updateMetadata(
-              this.dataSet.points[newSelectedPointIndices[0]].metadata , src
-            );
-          })
-      } else {  
+        this.dataSet.getSpriteImage(this.selectedPointIndices[0], (imgData: any) => {
+          let src = 'data:image/png;base64,' + imgData.imgUrl
+          this.metadataCard.updateMetadata(
+            this.dataSet.points[newSelectedPointIndices[0]].metadata, src
+          );
+        })
+      } else {
         this.metadataCard.updateMetadata(null);
       }
     }
@@ -647,7 +682,7 @@ class Projector
     });
     //
     let triangleModeBtn = this.$$("#triangleMode");
-    triangleModeBtn.addEventListener('click',()=>{
+    triangleModeBtn.addEventListener('click', () => {
       this.projectorScatterPlotAdapter.setTriangleMode((triangleModeBtn as any).active)
     })
 
@@ -817,9 +852,9 @@ class Projector
     Object.keys(currPredicates).forEach((key) => {
       dummyCurrPredicates[key] = currPredicates[key]
     });
-    
+
     dummyCurrPredicates[fieldName] = query;
-    if(confidenceThresholdFrom || confidenceThresholdTo){
+    if (confidenceThresholdFrom || confidenceThresholdTo) {
       dummyCurrPredicates['confidence'] = [Number(confidenceThresholdFrom), Number(confidenceThresholdTo)]
     }
     const msgId = logging.setModalMessage('Querying...');

@@ -233,8 +233,15 @@ export class ProjectorScatterPlotAdapter {
       false
     );
   }
-  updateScatterPlotPositions() {
-    const ds = this.projection == null ? null : this.projection.dataSet;
+  updateScatterPlotPositions(dataset?:any) {
+    // let ds
+    // if(dataset){
+    //   ds = dataset
+    //   console.log('ds',ds)
+    // }else{
+    const  ds = this.projection == null ? null : this.projection.dataSet;
+    // }
+    
     const projectionComponents =
       this.projection == null ? null : this.projection.projectionComponents;
     const newPositions = this.generatePointPositionArray(

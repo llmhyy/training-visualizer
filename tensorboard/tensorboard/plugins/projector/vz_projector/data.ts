@@ -242,6 +242,9 @@ export class DataSet {
   DVIEvaluation: {
     [iteration: number]: any;
   } = [];
+  DVIDataList:{
+    [iteration: number]: any;
+  } = [];
   DVIAvailableIteration: Array<number> = [];
   DVIPredicates: any[] = [];
   is_uncertainty_diversity_tot_exist: {
@@ -516,7 +519,6 @@ export class DataSet {
 
         const evaluation = data.evaluation;
         this.DVIEvaluation[iteration] = evaluation;
-
         const inv_acc = data.inv_acc_list;
 
         const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
@@ -701,6 +703,8 @@ export class DataSet {
         for(let i=0;i<real_data_number+background_point_number;i++){
           this.DVIfilterIndices.push(i);
         }
+        this.DVIDataList[iteration] = this.points
+        window.DVIDataList = this.DVIDataList
         stepCallback(this.tSNEIteration, evaluation, new_selection, filterIndices, this.tSNETotalIter);
     }).catch(error => {
         console.log(error);
