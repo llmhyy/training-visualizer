@@ -176,6 +176,13 @@ export const template = html`
         padding: 15px;
         border-collapse: collapse;
       }
+      button{
+        cursor:pointer;
+      }
+      button:hover{
+        background: #550831;
+        color:#fff;
+      }
       
     </style>
     <div id="main">

@@ -320,7 +320,6 @@ class Projector
       this.dataSetBeforeFilter = this.dataSet;
     }*/
     this.dataSet.setDVIFilteredData(pointIndices);
-
     // this.setCurrentDataSet(this.dataSet.getSubset(pointIndices));
     this.dataSetFilterIndices = pointIndices;
     this.projectorScatterPlotAdapter.updateScatterPlotPositions();
@@ -349,32 +348,35 @@ class Projector
 
   }
   ///
-  setDynamicNoisy(epochFrom,epochTo) {
+  setDynamicNoisy(epochFrom, epochTo) {
     let current = epochFrom
-
     this.timer = setInterval(() => {
-      console.log('eee1233',epochFrom,epochTo,'current:',current)
+      console.log('eee1233', epochFrom, epochTo, 'current:', current, this.dataSet.points, this.dataSet.points[80000], this.dataSet.points[80000].DVI_projections[current][0])
       this.inspectorPanel.updateCurrentPlayEpoch(current)
       for (let i = 0; i < this.dataSet.points.length; i++) {
         const point = this.dataSet.points[i];
-        if(!this.selectedPointIndices.length || this.selectedPointIndices.indexOf(i) !==-1){
+        if (!this.selectedPointIndices.length || this.selectedPointIndices.indexOf(i) !== -1) {
           point.projections['tsne-0'] = point.DVI_projections[current][0];
           point.projections['tsne-1'] = point.DVI_projections[current][1];
           point.projections['tsne-2'] = 0;
         }
       }
-      if(current<epochTo){
+      this.notifySelectionChanged(this.selectedPointIndices)
+      this.onProjectionChanged();
+      this.onIterationChange(current);
+      if (current < epochTo) {
         current++
-      }else{
+      } else {
         current = epochFrom
       }
-      this.projectorScatterPlotAdapter.updateScatterPlotPositions(this.dataSet);
-      this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
-      this.projectorScatterPlotAdapter.scatterPlot.render()
+      // this.projectorScatterPlotAdapter.setDataSet(this.dataSet)
+      // // this.projectorScatterPlotAdapter.updateScatterPlotPositions();
+      // this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
+      // this.projectorScatterPlotAdapter.scatterPlot.render()
     }, 1500)
   }
-  setDynamicStop(){
-   clearInterval(this.timer)
+  setDynamicStop() {
+    clearInterval(this.timer)
   }
   /**
    * Used by clients to indicate that a selection has occurred.

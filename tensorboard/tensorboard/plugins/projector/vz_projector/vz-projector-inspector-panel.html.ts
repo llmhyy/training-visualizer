@@ -170,7 +170,7 @@ export const template = html`
       display: flex;
     }
     .search-container{
-      margin-bottom:20px;
+      margin-bottom:10px;
       padding-bottom: 10px;
       border-bottom: 1px solid #ccc;
     }
@@ -191,6 +191,9 @@ export const template = html`
 
     .distance .options {
       float: right;
+    }
+    #query-container{
+
     }
 
     #query-header-container{
@@ -275,7 +278,7 @@ export const template = html`
       display: flex;
     }
 
-    .stop-container{
+    .flex-container{
       display: flex;
       justify-content:space-between;
     }
@@ -363,9 +366,14 @@ export const template = html`
           >
           </paper-input>
         </div>
-        <button style="width: 240px;" class="boundingbox-button show-noisy-btn">play selected points animation</button>
-        <div class="stop-container"><p class="current-epoch">epoch: {{currentPlayedEpoch}}</p>
-        
+        <div class="flex-container">
+        <p class="current-epoch">epoch: {{currentPlayedEpoch}}</p>
+        <paper-toggle-button id="show-trace-toggle" checked="{{showTrace}}">
+         Show Trace
+        </paper-toggle-button>
+        </div>
+        <div class="flex-container">
+        <button style="width: 110px;" class="boundingbox-button show-noisy-btn">play animation</button>
         <button class="boundingbox-button stop-animation-btn">
         stop playing
         </button></div>

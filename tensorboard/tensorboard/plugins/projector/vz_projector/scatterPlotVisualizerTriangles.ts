@@ -180,7 +180,7 @@ export class scatterPlotVisualizerTriangles implements ScatterPlotVisualizer {
       return;
     }
     const pointCount =
-      this.worldSpacePointPositions.length / XYZ_ELEMENTS_PER_ENTRY;
+      this.worldSpacePointPositions?.length / XYZ_ELEMENTS_PER_ENTRY;
     this.glyphTexture = this.createGlyphTexture();
     this.uniforms = {
       texture: { type: 't' },
