@@ -111,6 +111,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
   // private labelStrings: string[];
   private geometry: THREE.BufferGeometry;
   private linegeometry: THREE.BufferGeometry;
+  private linesContainer:any;
   private worldSpacePointPositions: Float32Array;
   private pickingColors: Float32Array;
   private renderColors: Float32Array;
@@ -297,12 +298,17 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     this.linegeometry = new THREE.BufferGeometry()
     const pointsArray = new Array()
     //加2000个顶点，范围为-1到1
-    let getPos = this.getPosition(window.DVIDataList[2],1)
-    let getPos2 = this.getPosition(window.DVIDataList[2],2)
+    let start = this.epoches[0]
+    let end = this.epoches[1]
+    console.log('starts123',start,end)
+    let getPos = this.getPosition(window.DVIDataList[end],start)
+    let getPos2 = this.getPosition(window.DVIDataList[end],2)
     // let count = 0,des = 0
     for (let i = 0; i < pointCount; i++) {
-      var material = new THREE.LineDashedMaterial({ color: 0xff0000 });
       if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
+        let color = window.DVIDataList[2][i].color
+        //color = color.replace('#','0x')
+        var material = new THREE.LineDashedMaterial({ color: color });
         var geometry = new THREE.Geometry()
 
         const x = getPos[i * 3] //范围在-1到1
@@ -321,6 +327,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
         // pointsArray.push(new THREE.Vector3(x, y, z))
         // this.linegeometry.setFromPoints(pointsArray)
         var line = new THREE.Line(geometry, material);
+        // this.linesContainer.push(line)
         this.scene.add(line)
         //顶点
         //geometry.vertices.push(new THREE.Vector3(x,y,z))
@@ -418,6 +425,11 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     if (this.geometry) {
       this.geometry.dispose();
       this.geometry = null;
+    }
+    if(this.linesContainer){
+      // this.linesContainer.forEach((item:any) => {
+      //   // item?.dispose()
+      // });
     }
     if (this.linegeometry) {
       this.linegeometry.dispose();
