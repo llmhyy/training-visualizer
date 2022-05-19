@@ -76,6 +76,9 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Number })
   epochTo: number
 
+  @property({ type: Boolean})
+  showTrace: false
+
   @property({type: Number})
   currentPlayedEpoch: number
 
@@ -161,6 +164,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.confidenceThresholdTo = 1
     this.epochFrom = 1
     this.epochTo = 1
+    this.showTrace = false
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;
@@ -568,12 +572,17 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         this.projectorEventContext.setDynamicNoisy(this.epochFrom,this.epochTo)
         this.noisyBtn.disabled = true;
         this.stopBtn.disabled = false;
+        if(this.showTrace){
+          this.projectorEventContext.renderInTraceLine(true, this.epochFrom,this.epochTo)
+        }
     }
+
 
     this.stopBtn.onclick = () => {
       this.projectorEventContext.setDynamicStop()
       this.noisyBtn.disabled = false;
       this.stopBtn.disabled = true;
+      this.projectorEventContext.renderInTraceLine(false,1,1)
     }
 
     this.setFilterButton.onclick = () => {

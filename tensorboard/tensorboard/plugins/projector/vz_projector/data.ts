@@ -457,6 +457,9 @@ export class DataSet {
     this.DVIfilterIndices = pointIndices;
   }
 
+  updateProjection(index){
+    this.points = window.DVIDataList[index]
+  }
 
   /** Runs DVI on the data. */
   async projectDVI (

@@ -30,6 +30,7 @@ import { ScatterPlotVisualizer3DLabels } from './scatterPlotVisualizer3DLabels';
 import { scatterPlotVisualizerTriangles } from './scatterPlotVisualizerTriangles'
 import { ScatterPlotVisualizerCanvasLabels } from './scatterPlotVisualizerCanvasLabels';
 import { ScatterPlotVisualizerPolylines } from './scatterPlotVisualizerPolylines';
+import { scatterPlotVisualizerTraceLine } from './scatterPlotVisualizerTraceLine';
 import * as knn from './knn';
 import * as vector from './vector';
 
@@ -105,6 +106,11 @@ export class ProjectorScatterPlotAdapter {
   private labels3DVisualizer: ScatterPlotVisualizer3DLabels;
   private triangles: scatterPlotVisualizerTriangles;
   private renderInTriangle: boolean = false;
+  private traceLineEpoch:any
+
+  private traceLine: scatterPlotVisualizerTraceLine;
+  private renderInTraceLine: boolean = false
+
   private canvasLabelsVisualizer: ScatterPlotVisualizerCanvasLabels;
   private polylineVisualizer: ScatterPlotVisualizerPolylines;
   constructor(
@@ -126,6 +132,12 @@ export class ProjectorScatterPlotAdapter {
         if (this.renderInTriangle) {
           if (this.triangles) {
             this.triangles.setSelectedPoint(this.selectedPointIndices);
+          }
+        }
+        if (this.renderInTraceLine) {
+          if (this.traceLine) {
+            this.traceLine.setEpoches(this.traceLineEpoch)
+            this.traceLine.setSelectedPoint(this.selectedPointIndices)
           }
         }
         this.updateScatterPlotPositions();
@@ -207,6 +219,15 @@ export class ProjectorScatterPlotAdapter {
     this.scatterPlot.render();
     // console.log('renderTriangle', renderTriangle)
   }
+
+  setRenderInTraceLine(renderTraceLine:boolean,epochFrom:number,epochTo:number){
+    this.renderInTraceLine = renderTraceLine;
+    this.traceLineEpoch = [epochFrom,epochTo]
+    this.createVisualizers(false, false);
+    this.updateScatterPlotAttributes();
+    console.log('epochFrom',epochFrom,epochTo)
+    this.scatterPlot.render();
+  }
   setLegendPointColorer(
     legendPointColorer: (ds: DataSet, index: number) => string
   ) {
@@ -233,21 +254,22 @@ export class ProjectorScatterPlotAdapter {
       false
     );
   }
-  updateScatterPlotPositions(dataset?:any) {
+  updateScatterPlotPositions(dataset?: any) {
     // let ds
     // if(dataset){
     //   ds = dataset
     //   console.log('ds',ds)
     // }else{
-    const  ds = this.projection == null ? null : this.projection.dataSet;
+    const ds = this.projection == null ? null : this.projection.dataSet;
     // }
-    
+
     const projectionComponents =
       this.projection == null ? null : this.projection.projectionComponents;
     const newPositions = this.generatePointPositionArray(
       ds,
       projectionComponents
     );
+    console.log('this.projection',this.projection)
     this.scatterPlot.setPointPositions(newPositions, this.projection == null ? 0 : this.projection.dataSet.DVICurrentRealDataNumber);
   }
   updateScatterPlotAttributes() {
@@ -746,10 +768,9 @@ export class ProjectorScatterPlotAdapter {
     }
     // Color the hover point.
     if (hoverPointIndex != null
-      && (!window.hiddenBackground 
-        || (window.hiddenBackground 
-        && ds.points[hoverPointIndex].metadata[this.labelPointAccessor].toString() !== 'background'))) 
-    {
+      && (!window.hiddenBackground
+        || (window.hiddenBackground
+          && ds.points[hoverPointIndex].metadata[this.labelPointAccessor].toString() !== 'background'))) {
       const c = new THREE.Color(POINT_COLOR_HOVER);
       let dst = hoverPointIndex * 3;
       colors[dst++] = c.r;
@@ -804,7 +825,12 @@ export class ProjectorScatterPlotAdapter {
     } else if (renderInTriangle) {
       this.triangles = new scatterPlotVisualizerTriangles();
       this.triangles.setSelectedPoint(this.selectedPointIndices);
-    } else {
+    } else if (this.renderInTraceLine) {
+      this.traceLine = new scatterPlotVisualizerTraceLine()
+      this.traceLine.setEpoches(this.traceLineEpoch)
+      this.traceLine.setSelectedPoint(this.selectedPointIndices);
+    }
+    else {
       this.spriteVisualizer = new ScatterPlotVisualizerSprites();
       scatterPlot.addVisualizer(this.spriteVisualizer);
       this.canvasLabelsVisualizer = new ScatterPlotVisualizerCanvasLabels(
@@ -821,6 +847,9 @@ export class ProjectorScatterPlotAdapter {
     }
     if (this.renderInTriangle) {
       scatterPlot.addVisualizer(this.triangles)
+    }
+    if(this.renderInTraceLine) {
+      scatterPlot.addVisualizer(this.traceLine)
     }
     if (this.canvasLabelsVisualizer) {
       scatterPlot.addVisualizer(this.canvasLabelsVisualizer);

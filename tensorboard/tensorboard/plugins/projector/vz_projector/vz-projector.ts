@@ -361,6 +361,7 @@ class Projector
           point.projections['tsne-2'] = 0;
         }
       }
+      this.dataSet.updateProjection(current)
       this.notifySelectionChanged(this.selectedPointIndices)
       this.onProjectionChanged();
       this.onIterationChange(current);
@@ -377,6 +378,10 @@ class Projector
   }
   setDynamicStop() {
     clearInterval(this.timer)
+  }
+
+  renderInTraceLine(inTrace: boolean, from: number, to: number) {
+    this.projectorScatterPlotAdapter.setRenderInTraceLine(inTrace, from, to)
   }
   /**
    * Used by clients to indicate that a selection has occurred.

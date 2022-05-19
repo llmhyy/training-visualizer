@@ -378,9 +378,6 @@ export const template = html`
         stop playing
         </button></div>
         </div>
-          <div class="img-container">
-          <img id="metaImg" height="100px"/>
-          </div>
         </iron-collapse>
   </div>
   <div>
