@@ -4,6 +4,7 @@
 
 # TODO change to timevis format
 # TODO set a base class for some trainer functions... we dont need too many hyperparameters for frontend
+# from tkinter import HIDDEN
 from PIL import Image
 
 from flask import request, Flask, jsonify, make_response
@@ -188,6 +189,7 @@ def update_projection():
     SUBJECT_MODEL_NAME = config["TRAINING"]["SUBJECT_MODEL_NAME"]
     VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
     RESOLUTION = config["VISUALIZATION"]["RESOLUTION"]
+    HIDDEN_LAYER = config["TRAINING"]["HIDDEN_LAYER"]
     EPOCH = EPOCH_START + (iteration - 1)* EPOCH_PERIOD
 
     # define hyperparameters
@@ -200,7 +202,7 @@ def update_projection():
         raise NameError("No subject model found in model.py...")
 
     data_provider = DataProvider(CONTENT_PATH, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, verbose=1)
-    model = SingleVisualizationModel(input_dims=512, output_dims=2, units=256)
+    model = SingleVisualizationModel(input_dims=512, output_dims=2, units=256, hidden_layer=HIDDEN_LAYER)
     negative_sample_rate = 5
     min_dist = .1
     _a, _b = find_ab_params(1.0, min_dist)
@@ -228,7 +230,7 @@ def update_projection():
     #     torch.from_numpy(all_data).to(dtype=torch.float32, device=trainer.DEVICE)).cpu().detach().numpy().tolist()
     train_labels = data_provider.train_labels(EPOCH)
     test_labels = data_provider.test_labels(EPOCH)
-    labels = np.concatenate((train_labels, test_labels), axis=0).tolist()
+    labels = np.concatenate((train_labels, test_labels), axis=0).astype("int").tolist()
 
     training_data_number = config["TRAINING_LEN"]
     testing_data_number = config["TESTING_LEN"]
@@ -433,26 +435,29 @@ def image_cut_save(path, left, upper, right, lower, save_path):
 @app.route('/sprite', methods=["POST","GET"])
 @cross_origin()
 def sprite_image():
+    path = request.args.get("path")
+    CONTENT_PATH = os.path.normpath(path)
+
     index=request.args.get("index")
-    print('index',index)
-    i = int(index)
-    pic_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/cifar10.png'
-    pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/new.png'
-    left, upper, right, lower = 0, 0, 32, 32
-    left =  (i%245)*32
-    upper = round(i/245)*32
-    right = left+32
-    lower = upper+32
-    name = "img" + str(i)
-    pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/'+name+'.png'
-    print(left,upper,right,lower,name,pic_save_dir_path)
-    image_cut_save(pic_path, left, upper, right, lower, pic_save_dir_path)
+    print('index', index)
+    idx = int(index)
+    pic_save_dir_path = os.path.join(CONTENT_PATH, "sprites", "{}.png".format(idx))
+    # pic_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/cifar10.png'
+    # pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/new.png'
+    # left, upper, right, lower = 0, 0, 32, 32
+    # left =  (i%245)*32
+    # upper = round(i/245)*32
+    # right = left+32
+    # lower = upper+32
+    # name = "img" + str(i)
+    # pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/'+name+'.png'
+    # print(left,upper,right,lower,name,pic_save_dir_path)
+    # image_cut_save(pic_path, left, upper, right, lower, pic_save_dir_path)
     img_stream = ''
     with open(pic_save_dir_path, 'rb') as img_f:
         img_stream = img_f.read()
         img_stream = base64.b64encode(img_stream).decode()
     image_type = "image/png"
-    # print('img_stream',img_stream)
     return make_response(jsonify({"imgUrl":img_stream}), 200)
 
 @app.route('/json', methods=["POST","GET"])
