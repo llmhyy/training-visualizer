@@ -316,7 +316,7 @@ export const template = html`
             </paper-input>
     </div>
     <!-- Misc Setting -->
-    <div class="misc-setting-editor">
+    <!-- <div class="misc-setting-editor">
         </paper-input>
         <paper-input
           value="{{resolutionEditorInput}}"
@@ -324,7 +324,7 @@ export const template = html`
           on-input="resolutionEditorInputChange"
         >
         </paper-input>
-    </div>
+    </div>-->
         <div class="slider">
             <label>Status</label>
             <div class="two-way-toggle">

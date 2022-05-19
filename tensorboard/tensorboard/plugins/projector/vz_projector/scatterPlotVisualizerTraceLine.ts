@@ -111,7 +111,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
   // private labelStrings: string[];
   private geometry: THREE.BufferGeometry;
   private linegeometry: THREE.BufferGeometry;
-  private linesContainer:any;
+  private linesContainer: any;
   private worldSpacePointPositions: Float32Array;
   private pickingColors: Float32Array;
   private renderColors: Float32Array;
@@ -186,11 +186,11 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
       });
     }
   }
-  getPosition(points,epoch) {
+  getPosition(points, epoch) {
     const ds = new DataSet(points)
     // projection == null ? null : this.projection.projectionComponents;
     const newPositions = this.generatePointPositionArray(
-      ds,epoch
+      ds, epoch
     );
     return newPositions
   }
@@ -201,7 +201,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     if (ds == null) {
       return null;
     }
-    console.log('generrere')
+    console.log('generrere', ds, epoch)
     const xScaler = d3.scaleLinear();
     const yScaler = d3.scaleLinear();
     let zScaler = null;
@@ -300,9 +300,16 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     //加2000个顶点，范围为-1到1
     let start = this.epoches[0]
     let end = this.epoches[1]
-    console.log('starts123',start,end)
-    let getPos = this.getPosition(window.DVIDataList[end],start)
-    let getPos2 = this.getPosition(window.DVIDataList[end],2)
+    console.log('starts123', start, end)
+    let getPos = this.getPosition(window.DVIDataList[end], start)
+    let getPos2 = this.getPosition(window.DVIDataList[end], end)
+    let posArr = []
+    for(let i = start;i<=end;i++){
+      let getPos = this.getPosition(window.DVIDataList[end], i)
+      posArr.push(getPos)
+    }
+    console.log('posArr',posArr)
+    console.log(getPos2,'wwww',this,this.worldSpacePointPositions)
     // let count = 0,des = 0
     for (let i = 0; i < pointCount; i++) {
       if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
@@ -317,18 +324,21 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
         const x2 = getPos2[i * 3]
         const y2 = getPos2[i * 3 + 1]
         const z2 = getPos2[i * 3 + 2]
-        let p2 = new THREE.Vector3(x2, y2, z2)
-        let p1 = new THREE.Vector3(x, y, z)
-        geometry.vertices.push(p1);
-        // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
-        geometry.vertices.push(p2);
+        let p2 = new THREE.Vector2(x2, y2)
+        let p1 = new THREE.Vector2(x, y)
+        // geometry.vertices.push(p1);
+        // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+        // geometry.vertices.push(p2);
         // pointsArray.push(new THREE.Vector3(x2, y2, z2))
-        console.log('p2,p1',p2,p1,geometry)
+        console.log('p2,p1', p2, p1, geometry)
         // pointsArray.push(new THREE.Vector3(x, y, z))
         // this.linegeometry.setFromPoints(pointsArray)
-        var line = new THREE.Line(geometry, material);
-        // this.linesContainer.push(line)
-        this.scene.add(line)
+        var line = new THREE.LineCurve(p1, p2);
+        // this.linesContainer.push(line
+         let points = line.getPoints(30)
+        geometry.setFromPoints(points)
+        var linen = new THREE.Line(geometry,material);
+        this.scene.add(linen);
         //顶点
         //geometry.vertices.push(new THREE.Vector3(x,y,z))
       }
@@ -426,7 +436,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
       this.geometry.dispose();
       this.geometry = null;
     }
-    if(this.linesContainer){
+    if (this.linesContainer) {
       // this.linesContainer.forEach((item:any) => {
       //   // item?.dispose()
       // });
