@@ -15,7 +15,8 @@ limitations under the License.
 declare global {
   interface Window {
     hiddenBackground: boolean | false,
-    DVIDataList: any
+    DVIDataList: any,
+    lineGeomertryList:any
   }
 }
 

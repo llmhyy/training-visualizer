@@ -29,6 +29,7 @@ import {
 declare global {
   interface Window {
     selectedList: any,
+    scene:any
   }
 }
 const FONT_SIZE = 80;
@@ -221,14 +222,14 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
       ];
       xScaler.domain(xExtent).range(range);
       yScaler.domain(yExtent).range(range);
-      //   if (projectionComponents[2] != null) {
-      //     const zExtent = d3.extent(
-      //       ds.points,
-      //       (p, i) => ds.points[i].projections['tsne-2']
-      //     );
-      //     zScaler = d3.scaleLinear();
-      //     zScaler.domain(zExtent).range(range);
-      //   }
+        // if (projectionComponents[2] != null) {
+          const zExtent = d3.extent(
+            ds.points,
+            (p, i) => ds.points[i].projections['tsne-2']
+          );
+          zScaler = d3.scaleLinear();
+          zScaler.domain(zExtent).range(range);
+        // }
       // }
       const positions = new Float32Array(ds.points.length * 3);
       let dst = 0;
@@ -256,6 +257,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
   private createTriangles() {
     this.dispose();
     window.selectedList = this.selectedIndexList
+    window.scene = this.scene
     if (this.worldSpacePointPositions == null) {
       return;
     }
@@ -296,6 +298,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     let lettersSoFar = 0;
     console.log('selectedIndexList', this.selectedIndexList, this.glyphTexture)
     this.linegeometry = new THREE.BufferGeometry()
+   
     const pointsArray = new Array()
     //加2000个顶点，范围为-1到1
     let start = this.epoches[0]
@@ -304,17 +307,14 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     let getPos = this.getPosition(window.DVIDataList[end], start)
     let getPos2 = this.getPosition(window.DVIDataList[end], end)
     let posArr = []
-    for(let i = start;i<=end;i++){
+    for (let i = start; i <= end; i++) {
       let getPos = this.getPosition(window.DVIDataList[end], i)
       posArr.push(getPos)
     }
-    console.log('posArr',posArr)
-    console.log(getPos2,'wwww',this,this.worldSpacePointPositions)
     // let count = 0,des = 0
     for (let i = 0; i < pointCount; i++) {
       if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
         let color = window.DVIDataList[2][i].color
-        //color = color.replace('#','0x')
         var material = new THREE.LineDashedMaterial({ color: color });
         var geometry = new THREE.Geometry()
 
@@ -324,20 +324,27 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
         const x2 = getPos2[i * 3]
         const y2 = getPos2[i * 3 + 1]
         const z2 = getPos2[i * 3 + 2]
-        let p2 = new THREE.Vector2(x2, y2)
-        let p1 = new THREE.Vector2(x, y)
+        const x3 = this.worldSpacePointPositions[i * 3]
+        const y3 = this.worldSpacePointPositions[i * 3 + 1]
+        let p1 = new THREE.Vector3(x, y, 0)
+        let p2 = new THREE.Vector3(x2, y2, 0)
+        let p3 = new THREE.Vector3(x3,y3,0)
         // geometry.vertices.push(p1);
         // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
         // geometry.vertices.push(p2);
         // pointsArray.push(new THREE.Vector3(x2, y2, z2))
-        console.log('p2,p1', p2, p1, geometry)
+        // console.log('p2,p1', p2, p1, p3, geometry)
         // pointsArray.push(new THREE.Vector3(x, y, z))
         // this.linegeometry.setFromPoints(pointsArray)
-        var line = new THREE.LineCurve(p1, p2);
+        var line = new THREE.CatmullRomCurve3([p1, p2, p3]);
         // this.linesContainer.push(line
-         let points = line.getPoints(30)
+        let points = line.getPoints(30)
         geometry.setFromPoints(points)
-        var linen = new THREE.Line(geometry,material);
+        var linen = new THREE.Line(geometry, material);
+        if(!window.lineGeomertryList){
+          window.lineGeomertryList = []
+        }
+        window.lineGeomertryList.push(linen)
         this.scene.add(linen);
         //顶点
         //geometry.vertices.push(new THREE.Vector3(x,y,z))

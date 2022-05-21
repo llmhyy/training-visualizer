@@ -76,10 +76,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Number })
   epochTo: number
 
-  @property({ type: Boolean})
+  @property({ type: Boolean })
   showTrace: false
 
-  @property({type: Number})
+  @property({ type: Number })
   currentPlayedEpoch: number
 
   @property({ type: Boolean })
@@ -140,7 +140,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     ) as HTMLButtonElement;
     this.noisyBtn = this.$$('.show-noisy-btn') as HTMLButtonElement
     this.stopBtn = this.$$('.stop-animation-btn') as HTMLButtonElement
-    
+
     this.searchButton = this.$$('.search') as HTMLButtonElement;
     this.addButton = this.$$('.add') as HTMLButtonElement;
     this.resetButton = this.$$('.reset') as HTMLButtonElement;
@@ -412,7 +412,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       return spriteElementImage;
     };
   }
-  updateCurrentPlayEpoch(num:number){
+  updateCurrentPlayEpoch(num: number) {
     this.currentPlayedEpoch = num
   }
   private updateNeighborsList(neighbors?: knn.NearestEntry[]) {
@@ -567,14 +567,14 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     // });
     // Filtering dataset.
 
-    this.noisyBtn.onclick = () =>{
-      console.log(this.epochFrom,this.epochTo)
-        this.projectorEventContext.setDynamicNoisy(this.epochFrom,this.epochTo)
-        this.noisyBtn.disabled = true;
-        this.stopBtn.disabled = false;
-        if(this.showTrace){
-          this.projectorEventContext.renderInTraceLine(true, this.epochFrom,this.epochTo)
-        }
+    this.noisyBtn.onclick = () => {
+      console.log(this.epochFrom, this.epochTo)
+      this.projectorEventContext.setDynamicNoisy(this.epochFrom, this.epochTo)
+      this.noisyBtn.disabled = true;
+      this.stopBtn.disabled = false;
+      if (this.showTrace) {
+        this.projectorEventContext.renderInTraceLine(true, this.epochFrom, this.epochTo)
+      }
     }
 
 
@@ -582,7 +582,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.projectorEventContext.setDynamicStop()
       this.noisyBtn.disabled = false;
       this.stopBtn.disabled = true;
-      this.projectorEventContext.renderInTraceLine(false,1,1)
+      this.projectorEventContext.renderInTraceLine(false, 1, 1)
+      if (window.lineGeomertryList?.length) {
+        for (let i = 0; i < window.lineGeomertryList; i++) { window.lineGeomertryList[i].parent.remove(window.lineGeomertryList[i]) }
+      }
     }
 
     this.setFilterButton.onclick = () => {
