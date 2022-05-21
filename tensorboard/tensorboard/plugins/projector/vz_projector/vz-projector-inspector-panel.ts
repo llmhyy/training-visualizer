@@ -568,6 +568,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     // Filtering dataset.
 
     this.noisyBtn.onclick = () => {
+      window.isAnimatating = true
       console.log(this.epochFrom, this.epochTo)
       this.projectorEventContext.setDynamicNoisy(this.epochFrom, this.epochTo)
       this.noisyBtn.disabled = true;
@@ -579,6 +580,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
 
 
     this.stopBtn.onclick = () => {
+      window.isAnimatating = false
       this.projectorEventContext.setDynamicStop()
       this.noisyBtn.disabled = false;
       this.stopBtn.disabled = true;

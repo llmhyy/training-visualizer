@@ -486,12 +486,14 @@ class Projector
             index: newSelectedPointIndices[0],
             dist: 0
           };
-        this.dataSet.getSpriteImage(this.selectedPointIndices[0], (imgData: any) => {
-          let src = 'data:image/png;base64,' + imgData.imgUrl
-          this.metadataCard.updateMetadata(
-            this.dataSet.points[newSelectedPointIndices[0]].metadata, src
-          );
-        })
+          if(window.isAnimatating == false) {
+            this.dataSet.getSpriteImage(this.selectedPointIndices[0], (imgData: any) => {
+              let src = 'data:image/png;base64,' + imgData.imgUrl
+              this.metadataCard.updateMetadata(
+                this.dataSet.points[newSelectedPointIndices[0]].metadata, src
+              );
+            })
+          }
       } else {
         this.metadataCard.updateMetadata(null);
       }

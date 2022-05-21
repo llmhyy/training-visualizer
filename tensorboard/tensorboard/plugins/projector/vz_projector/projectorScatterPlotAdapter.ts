@@ -221,6 +221,9 @@ export class ProjectorScatterPlotAdapter {
   }
 
   setRenderInTraceLine(renderTraceLine:boolean,epochFrom:number,epochTo:number){
+    if(!renderTraceLine){
+      console.log('none')
+    }
     this.renderInTraceLine = renderTraceLine;
     this.traceLineEpoch = [epochFrom,epochTo]
     this.createVisualizers(false, false);

@@ -29,7 +29,9 @@ import {
 declare global {
   interface Window {
     selectedList: any,
-    scene:any
+    scene: any,
+    worldSpacePointPositions: any,
+    isAnimatating:boolean | false
   }
 }
 const FONT_SIZE = 80;
@@ -222,14 +224,14 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
       ];
       xScaler.domain(xExtent).range(range);
       yScaler.domain(yExtent).range(range);
-        // if (projectionComponents[2] != null) {
-          const zExtent = d3.extent(
-            ds.points,
-            (p, i) => ds.points[i].projections['tsne-2']
-          );
-          zScaler = d3.scaleLinear();
-          zScaler.domain(zExtent).range(range);
-        // }
+      // if (projectionComponents[2] != null) {
+      const zExtent = d3.extent(
+        ds.points,
+        (p, i) => ds.points[i].projections['tsne-2']
+      );
+      zScaler = d3.scaleLinear();
+      zScaler.domain(zExtent).range(range);
+      // }
       // }
       const positions = new Float32Array(ds.points.length * 3);
       let dst = 0;
@@ -258,8 +260,16 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     this.dispose();
     window.selectedList = this.selectedIndexList
     window.scene = this.scene
+
     if (this.worldSpacePointPositions == null) {
       return;
+    }
+    let len = this.epoches[1] - this.epoches[0]
+    if (!window.worldSpacePointPositions) {
+      window.worldSpacePointPositions = []
+    }
+    if (window.worldSpacePointPositions.length <= len) {
+      window.worldSpacePointPositions.push(this.worldSpacePointPositions)
     }
     const pointCount =
       this.worldSpacePointPositions?.length / XYZ_ELEMENTS_PER_ENTRY;
@@ -298,7 +308,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     let lettersSoFar = 0;
     console.log('selectedIndexList', this.selectedIndexList, this.glyphTexture)
     this.linegeometry = new THREE.BufferGeometry()
-   
+
     const pointsArray = new Array()
     //加2000个顶点，范围为-1到1
     let start = this.epoches[0]
@@ -311,46 +321,65 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
       let getPos = this.getPosition(window.DVIDataList[end], i)
       posArr.push(getPos)
     }
-    // let count = 0,des = 0
-    for (let i = 0; i < pointCount; i++) {
-      if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
-        let color = window.DVIDataList[2][i].color
-        var material = new THREE.LineDashedMaterial({ color: color });
-        var geometry = new THREE.Geometry()
+    let selectedLen 
+    if (selectedLen !== this.selectedIndexList?.length || window.worldSpacePointPositions.length == (this.epoches[1] - this.epoches[0]) + 1) {
+      // let count = 0,des = 0
+      selectedLen = this.selectedIndexList?.length
+      for (let i = 0; i < pointCount; i++) {
+        if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
+          let color = window.DVIDataList[2][i].color
+          var material = new THREE.LineBasicMaterial({ color: color,linewidth: 3 });
+          // material.resolution.set(window.innerWidth, window.innerHeight);
+          var geometry = new THREE.Geometry()
+          let pointll = []
+          if (window.worldSpacePointPositions && window.worldSpacePointPositions.length > 1) {
+            for (let wlen = 0; wlen < posArr.length; wlen++) {
+              const x = posArr[wlen][i * 3]
+              const y = posArr[wlen][i * 3 + 1]
+              pointll.push(new THREE.Vector3(x, y,0))
+            }
+          }
 
-        const x = getPos[i * 3] //范围在-1到1
-        const y = getPos[i * 3 + 1]
-        const z = getPos[i * 3 + 2]
-        const x2 = getPos2[i * 3]
-        const y2 = getPos2[i * 3 + 1]
-        const z2 = getPos2[i * 3 + 2]
-        const x3 = this.worldSpacePointPositions[i * 3]
-        const y3 = this.worldSpacePointPositions[i * 3 + 1]
-        let p1 = new THREE.Vector3(x, y, 0)
-        let p2 = new THREE.Vector3(x2, y2, 0)
-        let p3 = new THREE.Vector3(x3,y3,0)
-        // geometry.vertices.push(p1);
-        // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
-        // geometry.vertices.push(p2);
-        // pointsArray.push(new THREE.Vector3(x2, y2, z2))
-        // console.log('p2,p1', p2, p1, p3, geometry)
-        // pointsArray.push(new THREE.Vector3(x, y, z))
-        // this.linegeometry.setFromPoints(pointsArray)
-        var line = new THREE.CatmullRomCurve3([p1, p2, p3]);
-        // this.linesContainer.push(line
-        let points = line.getPoints(30)
-        geometry.setFromPoints(points)
-        var linen = new THREE.Line(geometry, material);
-        if(!window.lineGeomertryList){
-          window.lineGeomertryList = []
+          const x = getPos[i * 3] //范围在-1到1
+          const y = getPos[i * 3 + 1]
+          const z = getPos[i * 3 + 2]
+          const x2 = getPos2[i * 3]
+          const y2 = getPos2[i * 3 + 1]
+          const z2 = getPos2[i * 3 + 2]
+          const x3 = this.worldSpacePointPositions[i * 3]
+          const y3 = this.worldSpacePointPositions[i * 3 + 1]
+          let p1 = new THREE.Vector3(x, y, 0)
+          let p2 = new THREE.Vector3(x2, y2, 0)
+          let p3 = new THREE.Vector3(x3, y3, 0)
+          // pointll.push(p3)
+          // geometry.vertices.push(p1);
+          // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+          // geometry.vertices.push(p2);
+          // pointsArray.push(new THREE.Vector3(x2, y2, z2))
+          // console.log('p2,p1', p2, p1, p3, geometry)
+          // pointsArray.push(new THREE.Vector3(x, y, z))
+          // this.linegeometry.setFromPoints(pointsArray)
+          // pointll.unshift(p1)
+          // pointll.push(p3)
+          const curve = new THREE.SplineCurve(pointll);
+          // let points = curve.getPoints(50)
+          var line = new THREE.CatmullRomCurve3(pointll);
+          // this.linesContainer.push(line
+          let points = line.getPoints(100)
+          geometry.setFromPoints(points)
+          var linen = new THREE.Line(geometry, material);
+          if (!window.lineGeomertryList) {
+            window.lineGeomertryList = []
+          }
+          window.lineGeomertryList.push(linen)
+          this.scene.add(linen);
+          //顶点
+          //geometry.vertices.push(new THREE.Vector3(x,y,z))
         }
-        window.lineGeomertryList.push(linen)
-        this.scene.add(linen);
-        //顶点
-        //geometry.vertices.push(new THREE.Vector3(x,y,z))
+        //用这个api传入顶点数组
       }
-      //用这个api传入顶点数组
     }
+
 
 
 
