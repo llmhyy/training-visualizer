@@ -465,10 +465,14 @@ class Projector
       this.selectedPointIndices = updatedSelectedPointIndices; // update selection
       if (this.selectedPointIndices.length > 0) {
         // at least one selected point
-        this.metadataCard.updateMetadata(
-          // show metadata for first selected point
-          this.dataSet.points[this.selectedPointIndices[0]].metadata
-        );
+        if(this.selectedPointIndices.length == 1){
+          this.metadataCard.updateMetadata(
+            // show metadata for first selected point
+            this.dataSet.points[this.selectedPointIndices[0]].metadata
+          );
+        }else{
+          this.metadataCard.updateMetadata(null);
+        }
       } else {
         // no points selected
         this.metadataCard.updateMetadata(null); // clear metadata
@@ -489,7 +493,7 @@ class Projector
             index: newSelectedPointIndices[0],
             dist: 0
           };
-          if(window.isAnimatating == false) {
+          if(window.isAnimatating !== true) {
             this.dataSet.getSpriteImage(this.selectedPointIndices[0], (imgData: any) => {
               let src = 'data:image/png;base64,' + imgData.imgUrl
               this.metadataCard.updateMetadata(
