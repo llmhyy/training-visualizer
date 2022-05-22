@@ -322,6 +322,7 @@ class Projector
     if (this.dataSetBeforeFilter == null) {
       this.dataSetBeforeFilter = this.dataSet;
     }*/
+    console.log('pointIndices',pointIndices)
     this.dataSet.setDVIFilteredData(pointIndices);
     // this.setCurrentDataSet(this.dataSet.getSubset(pointIndices));
     this.dataSetFilterIndices = pointIndices;

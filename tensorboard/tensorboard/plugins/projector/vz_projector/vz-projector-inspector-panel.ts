@@ -503,11 +503,12 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     }
   }
   private updateFilterButtons(numPoints: number) {
-    if (numPoints > 1) {
+    if (numPoints) {
       this.setFilterButton.innerText = `Filter ${numPoints} points`;
       this.setFilterButton.disabled = null;
       this.clearSelectionButton.disabled = null;
     } else {
+      this.setFilterButton.innerText = `Filter selection`;
       this.setFilterButton.disabled = true;
       this.clearSelectionButton.disabled = true;
     }
@@ -626,6 +627,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.searchBox.setValue("", false);
     };
     this.clearSelectionButton.onclick = () => {
+      this.updateFilterButtons(0)
       projector.adjustSelectionAndHover([]);
       this.queryIndices = [];
     };
@@ -691,7 +693,6 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.projectorEventContext.notifySelectionChanged(this.boundingBoxSelection, true);
     }
   }
-
   updateBoundingBoxSelection(indices: number[]) {
     this.currentBoundingBoxSelection = indices;
   }
