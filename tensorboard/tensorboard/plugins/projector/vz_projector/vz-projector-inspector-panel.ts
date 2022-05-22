@@ -505,7 +505,9 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private updateFilterButtons(numPoints: number) {
     if (numPoints) {
       this.setFilterButton.innerText = `Filter ${numPoints} points`;
-      this.setFilterButton.disabled = null;
+      if(numPoints > 1){
+        this.setFilterButton.disabled = null;
+      }
       this.clearSelectionButton.disabled = null;
     } else {
       this.setFilterButton.innerText = `Filter selection`;
@@ -609,9 +611,11 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       // var indices = this.selectedPointIndices.concat(
       //   this.neighborsOfFirstPoint.map((n) => n.index)
       // );
+    
       this.currentPredicate[this.selectedMetadataField] = this.searchPredicate;
-      this.filterIndices = this.queryIndices.sort()
-      projector.filterDataset(this.filterIndices);
+      this.filterIndices = this.selectedPointIndices.sort()
+      console.log(this.filterIndices,this.selectedPointIndices)
+      projector.filterDataset(this.filterIndices,true);
       this.enableResetFilterButton(true);
       this.updateFilterButtons(this.filterIndices.length);
     };
@@ -619,10 +623,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.queryIndices = [];
       this.currentPredicate = {};
       this.filterIndices = [];
-      for (let i = 0; i < projector.dataSet.DVICurrentRealDataNumber; i++) {
-        this.filterIndices.push(i);
-      }
-      projector.resetFilterDataset();
+      projector.resetFilterDataset(projector.dataSet.DVICurrentRealDataNumber);
       this.enableResetFilterButton(false);
       this.searchBox.setValue("", false);
     };

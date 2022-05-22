@@ -106,7 +106,7 @@ export class ProjectorScatterPlotAdapter {
   private labels3DVisualizer: ScatterPlotVisualizer3DLabels;
   private triangles: scatterPlotVisualizerTriangles;
   private renderInTriangle: boolean = false;
-  private traceLineEpoch:any
+  private traceLineEpoch: any
 
   private traceLine: scatterPlotVisualizerTraceLine;
   private renderInTraceLine: boolean = false
@@ -220,15 +220,15 @@ export class ProjectorScatterPlotAdapter {
     // console.log('renderTriangle', renderTriangle)
   }
 
-  setRenderInTraceLine(renderTraceLine:boolean,epochFrom:number,epochTo:number){
-    if(!renderTraceLine){
+  setRenderInTraceLine(renderTraceLine: boolean, epochFrom: number, epochTo: number) {
+    if (!renderTraceLine) {
       console.log('none')
     }
     this.renderInTraceLine = renderTraceLine;
-    this.traceLineEpoch = [epochFrom,epochTo]
+    this.traceLineEpoch = [epochFrom, epochTo]
     this.createVisualizers(false, false);
     this.updateScatterPlotAttributes();
-    console.log('epochFrom',epochFrom,epochTo)
+    console.log('epochFrom', epochFrom, epochTo)
     this.scatterPlot.render();
   }
   setLegendPointColorer(
@@ -272,14 +272,14 @@ export class ProjectorScatterPlotAdapter {
       ds,
       projectionComponents
     );
-    console.log('this.projection',this.projection,window.iteration)
+    console.log('this.projection', this.projection, window.iteration)
     this.scatterPlot.setPointPositions(newPositions, this.projection == null ? 0 : this.projection.dataSet.DVICurrentRealDataNumber);
-    if(!window.worldSpacePointPositions){
+    if (!window.worldSpacePointPositions) {
       window.worldSpacePointPositions = []
     }
     window.worldSpacePointPositions[window.iteration] = newPositions
   }
-  updateScatterPlotAttributes() {
+  updateScatterPlotAttributes(isFilter?: boolean) {
     if (this.projection == null) {
       return;
     }
@@ -299,7 +299,8 @@ export class ProjectorScatterPlotAdapter {
       this.renderLabelsIn3D,
       this.getSpriteImageMode(),
       this.renderInTriangle,
-      this.renderInTraceLine
+      this.renderInTraceLine,
+      isFilter
     );
     const pointScaleFactors = this.generatePointScaleFactorArray(
       dataSet,
@@ -674,7 +675,8 @@ export class ProjectorScatterPlotAdapter {
     label3dMode: boolean,
     spriteImageMode: boolean,
     renderInTriangle: boolean,
-    renderInTraceLine: boolean
+    renderInTraceLine: boolean,
+    isFilter: boolean
   ): Float32Array {
     if (ds == null) {
       return new Float32Array(0);
@@ -694,18 +696,20 @@ export class ProjectorScatterPlotAdapter {
       unselectedColor = SPRITE_IMAGE_COLOR_UNSELECTED;
       noSelectionColor = SPRITE_IMAGE_COLOR_NO_SELECTION;
     }
+    console.log('isFilter', isFilter)
     // Give all points the unselected color.
     {
       const n = ds.points.length;
       let dst = 0;
-      if (selectedPointCount > 0 && !renderInTriangle) {
+      if (selectedPointCount > 0 && !renderInTriangle && !isFilter) {
         let c = new THREE.Color(unselectedColor);
         for (let i = 0; i < n; ++i) {
           colors[dst++] = c.r;
           colors[dst++] = c.g;
           colors[dst++] = c.b;
         }
-      } else {
+      }
+      else {
         if (legendPointColorer != null) {
           for (let i = 0; i < n; ++i) {
             const c = new THREE.Color(legendPointColorer(ds, i));
@@ -713,6 +717,7 @@ export class ProjectorScatterPlotAdapter {
             colors[dst++] = c.g;
             colors[dst++] = c.b;
           }
+
         } else {
           const c = new THREE.Color(noSelectionColor);
           for (let i = 0; i < n; ++i) {
@@ -773,6 +778,17 @@ export class ProjectorScatterPlotAdapter {
             colors[dst++] = c.b;
           }
         }
+      }
+    }
+    if (isFilter) {
+      const n = ds.points.length;
+      console.log('isisisisisiissisi')
+      for (let i = 0; i < n; ++i) {
+        const c = new THREE.Color(POINT_COLOR_SELECTED);
+        let dst = i * 3
+        colors[dst++] = c.r;
+        colors[dst++] = c.g;
+        colors[dst++] = c.b;
       }
     }
     // Color the hover point.
@@ -857,7 +873,7 @@ export class ProjectorScatterPlotAdapter {
     if (this.renderInTriangle) {
       scatterPlot.addVisualizer(this.triangles)
     }
-    if(this.renderInTraceLine) {
+    if (this.renderInTraceLine) {
       scatterPlot.addVisualizer(this.traceLine)
     }
     if (this.canvasLabelsVisualizer) {

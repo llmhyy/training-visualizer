@@ -316,7 +316,7 @@ class Projector
   registerSelectionChangedListener(listener: SelectionChangedListener) {
     this.selectionChangedListeners.push(listener);
   }
-  filterDataset(pointIndices: number[]) {
+  filterDataset(pointIndices: number[],filter?:boolean) {
     const selectionSize = this.selectedPointIndices.length;
     /*
     if (this.dataSetBeforeFilter == null) {
@@ -327,11 +327,11 @@ class Projector
     // this.setCurrentDataSet(this.dataSet.getSubset(pointIndices));
     this.dataSetFilterIndices = pointIndices;
     this.projectorScatterPlotAdapter.updateScatterPlotPositions();
-    this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
+    this.projectorScatterPlotAdapter.updateScatterPlotAttributes(filter);
     this.adjustSelectionAndHover(util.range(selectionSize));
 
   }
-  resetFilterDataset() {
+  resetFilterDataset(num?) {
     const originalPointIndices = this.selectedPointIndices.map(
       (filteredIndex) => this.dataSet.points[filteredIndex].index
     );
@@ -342,13 +342,21 @@ class Projector
     }
     this.dataSetBeforeFilter = null;*/
     // setDVIfilter all data
+    let total = this.dataSet.DVIValidPointNumber[this.dataSet.tSNEIteration]
+    if(num) {
+      total = num
+    }
+    
     var indices: number[];
     indices = [];
-    for (let i = 0; i < this.dataSet.DVIValidPointNumber[this.dataSet.tSNEIteration]; i++) {
+    for (let i = 0; i < total; i++) {
       indices.push(i);
     }
     this.dataSetFilterIndices = indices;
     this.dataSet.setDVIFilteredData(indices);
+    this.projectorScatterPlotAdapter.updateScatterPlotPositions();
+    this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
+    // this.adjustSelectionAndHover(util.range(selectionSize));
 
   }
   ///
