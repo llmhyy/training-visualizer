@@ -397,11 +397,11 @@ export const template = html`
                   <td><span class="inv_acc_train">NA</span> </td>
                   <td> <span class="inv_acc_test">NA</span></td>
                 </tr>
-                <!--<tr>
+                <tr>
                   <td>CCR</td>
                   <td><span class="inv_conf_train">NA</span></td>
                   <td><span class="inv_conf_test">NA</span></td>
-                </tr>-->
+                </tr>
               </table>
 <!--          <p>Projection nn perseverance knn: (train,15): <span class="nn_train_15">NA</span> (test,15): <span class="nn_test_15">NA</span></p>-->
 <!--          <p>Projection boundary perserverance knn: (train,15): <span class="bound_train_15">NA</span> (test,15): <span class="bound_test_15">NA</span></p>-->
