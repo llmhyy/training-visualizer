@@ -16,7 +16,8 @@ declare global {
   interface Window {
     hiddenBackground: boolean | false,
     DVIDataList: any,
-    lineGeomertryList:any
+    lineGeomertryList:any,
+    iteration:number
   }
 }
 
@@ -194,6 +195,7 @@ class Projector
       .then(data => { this.DVIServer = data.DVIServerIP + ":" + data.DVIServerPort; })
   };
   onIterationChange(num: number) {
+    window.iteration = num;
     this.iteration = num;
   }
 
@@ -354,6 +356,7 @@ class Projector
     this.timer = setInterval(() => {
       console.log('eee1233', epochFrom, epochTo, 'current:', current, this.dataSet.points, this.dataSet.points[80000], this.dataSet.points[80000].DVI_projections[current][0])
       this.inspectorPanel.updateCurrentPlayEpoch(current)
+      window.iteration = current;
       for (let i = 0; i < this.dataSet.points.length; i++) {
         const point = this.dataSet.points[i];
         if (!this.selectedPointIndices.length || this.selectedPointIndices.indexOf(i) !== -1) {

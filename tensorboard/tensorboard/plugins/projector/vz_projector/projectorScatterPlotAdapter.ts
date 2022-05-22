@@ -272,8 +272,12 @@ export class ProjectorScatterPlotAdapter {
       ds,
       projectionComponents
     );
-    console.log('this.projection',this.projection)
+    console.log('this.projection',this.projection,window.iteration)
     this.scatterPlot.setPointPositions(newPositions, this.projection == null ? 0 : this.projection.dataSet.DVICurrentRealDataNumber);
+    if(!window.worldSpacePointPositions){
+      window.worldSpacePointPositions = []
+    }
+    window.worldSpacePointPositions[window.iteration] = newPositions
   }
   updateScatterPlotAttributes() {
     if (this.projection == null) {
@@ -294,7 +298,8 @@ export class ProjectorScatterPlotAdapter {
       hoverIndex,
       this.renderLabelsIn3D,
       this.getSpriteImageMode(),
-      this.renderInTriangle
+      this.renderInTriangle,
+      this.renderInTraceLine
     );
     const pointScaleFactors = this.generatePointScaleFactorArray(
       dataSet,
@@ -668,7 +673,8 @@ export class ProjectorScatterPlotAdapter {
     hoverPointIndex: number,
     label3dMode: boolean,
     spriteImageMode: boolean,
-    renderInTriangle: boolean
+    renderInTriangle: boolean,
+    renderInTraceLine: boolean
   ): Float32Array {
     if (ds == null) {
       return new Float32Array(0);
@@ -721,7 +727,7 @@ export class ProjectorScatterPlotAdapter {
     {
       const n = selectedPointCount;
       const c = new THREE.Color(POINT_COLOR_SELECTED);
-      if (!renderInTriangle) {
+      if (!renderInTriangle && !renderInTraceLine) {
         for (let i = 0; i < n; ++i) {
           let dst = selectedPointIndices[i] * 3;
           colors[dst++] = c.r;

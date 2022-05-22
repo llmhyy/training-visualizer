@@ -258,6 +258,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.updateNeighborsList();
   }
 
+  @observe('showTrace')
+  _refreshScatterplot() {
+    console.log('trace',this.showTrace)
+    if(this.showTrace){
+      this.projectorEventContext?.renderInTraceLine(true, this.epochFrom, this.epochTo)
+    }else{
+      this.projectorEventContext?.renderInTraceLine(false, this.epochFrom, this.epochTo)
+    }
+  }
+
   metadataEditorContext(enabled: boolean, metadataColumn: string) {
     if (!this.projector || !this.projector.dataSet) {
       return;
@@ -573,9 +583,13 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.projectorEventContext.setDynamicNoisy(this.epochFrom, this.epochTo)
       this.noisyBtn.disabled = true;
       this.stopBtn.disabled = false;
-      if (this.showTrace) {
-        this.projectorEventContext.renderInTraceLine(true, this.epochFrom, this.epochTo)
-      }
+      // if (this.showTrace) {
+      //   // this.projectorScatterPlotAdapter.scatterPlot.render()
+      //   this.projectorEventContext.renderInTraceLine(true, this.epochFrom, this.epochTo)
+      // }
+      // } else{
+      //   this.projectorEventContext.renderInTraceLine(false, this.epochFrom, this.epochTo)
+      // }
     }
 
 
@@ -584,7 +598,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.projectorEventContext.setDynamicStop()
       this.noisyBtn.disabled = false;
       this.stopBtn.disabled = true;
-      this.projectorEventContext.renderInTraceLine(false, 1, 1)
+      // this.projectorEventContext.renderInTraceLine(false, 1, 1)
       if (window.lineGeomertryList?.length) {
         for (let i = 0; i < window.lineGeomertryList; i++) { window.lineGeomertryList[i].parent.remove(window.lineGeomertryList[i]) }
       }
