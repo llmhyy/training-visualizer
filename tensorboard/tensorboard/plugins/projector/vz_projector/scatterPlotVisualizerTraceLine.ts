@@ -18,6 +18,8 @@ import * as d3 from 'd3';
 import { RenderContext } from './renderContext';
 import { ScatterPlotVisualizer } from './scatterPlotVisualizer';
 import * as util from './util';
+const RGB_NUM_ELEMENTS = 3;
+const XYZ_NUM_ELEMENTS = 3;
 import {
   DataSet,
   DistanceFunction,
@@ -127,6 +129,21 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
   private glyphTexture: GlyphTexture;
   private selectedIndexList: number[]
   private epoches: number[]
+
+
+  private polylines: THREE.Line[];
+  private polylinePositionBuffer: {
+    [polylineIndex: number]: THREE.BufferAttribute;
+  } = {};
+  private polylineColorBuffer: {
+    [polylineIndex: number]: THREE.BufferAttribute;
+  } = {};
+
+  private polylinegemo: {
+    [polylineIndex: number]: THREE.Geometry;
+  } = {};
+
+
   private createGlyphTexture(): GlyphTexture {
     let canvas = document.createElement('canvas');
     canvas.width = MAX_CANVAS_DIMENSION;
@@ -257,7 +274,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     }
   }
   private createTriangles() {
-    this.dispose();
+    this.polylinegemo = []
     window.selectedList = this.selectedIndexList
     window.scene = this.scene
 
@@ -279,7 +296,7 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     //   }
     // }
     // if (!flag) {
-      window.worldSpacePointPositions[window.iteration] = this.worldSpacePointPositions
+    window.worldSpacePointPositions[window.iteration] = this.worldSpacePointPositions
     // }
     const pointCount =
       this.worldSpacePointPositions?.length / XYZ_ELEMENTS_PER_ENTRY;
@@ -318,8 +335,69 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     let lettersSoFar = 0;
     console.log('selectedIndexList', this.selectedIndexList, this.glyphTexture)
     this.linegeometry = new THREE.BufferGeometry()
+    this.polylines = [];
+  //  if(window.worldSpacePointPositions?.length>1){
+  //    // Set up the position buffer arrays for each polyline.
+  //   const vertexCount = 2 * (window.worldSpacePointPositions.length);
+  //   let polylinesBu = new Float32Array(vertexCount * XYZ_NUM_ELEMENTS);
+  //   let colorsBu = new Float32Array(vertexCount * RGB_NUM_ELEMENTS);
+  //   for (let i = 0; i < pointCount; i++) {
+  //     if (this.selectedIndexList.indexOf(i) !== -1) {
+  //       this.polylinePositionBuffer[i] = new THREE.BufferAttribute(
+  //         polylinesBu,
+  //         XYZ_NUM_ELEMENTS
+  //       );
 
-    const pointsArray = new Array()
+  //       this.polylineColorBuffer[i] = new THREE.BufferAttribute(
+  //         colorsBu,
+  //         RGB_NUM_ELEMENTS
+  //       );
+  //     }
+  //   }
+  //   console.log('this.polylinePositionBuffer', this.polylinePositionBuffer)
+ 
+  //   for (let i = 0; i < pointCount; i++) {
+  //     // for (let j = 0; j < pointCount; j++) {
+  //     let src = 0;
+  //     if (this.selectedIndexList.indexOf(i) !== -1) {
+  //       for (let le = 1; le < window.worldSpacePointPositions.length; le++) {
+  //         console.log('le', window.worldSpacePointPositions[le])
+  //         if (this.selectedIndexList.indexOf(i) !== -1) {
+  //           const p = util.vector3FromPackedArray(window.worldSpacePointPositions[le], i);
+  //           console.log('ii,', p, this.polylinePositionBuffer[i])
+  //           if (p) {
+  //             this.polylinePositionBuffer[i].setXYZ(src++, p.x, p.y, p.z)
+  //           }
+  //           this.polylinePositionBuffer[i].needsUpdate = true;
+  //         } else {
+  //           //this.polylinePositionBuffer[i].setXYZ(src++, 0, 0, 0)
+  //         }
+  //       }
+  //     }
+
+  //   }
+  //   console.log('this.polylinePositionBuffer111', this.polylinePositionBuffer)
+
+  //   for (let i = 0; i < pointCount; i++) {
+  //     if (this.selectedIndexList.indexOf(i) !== -1) {
+  //       const geometry = new THREE.BufferGeometry();
+  //       geometry.addAttribute('position', this.polylinePositionBuffer[i]);
+  //       geometry.addAttribute('color', this.polylineColorBuffer[i]);
+  //       console.log('1111',geometry)
+  //       const material = new THREE.LineBasicMaterial({
+  //         linewidth: 1, // unused default, overwritten by width array.
+  //         opacity: 1.0, // unused default, overwritten by opacity array.
+  //         transparent: true,
+  //         vertexColors: THREE.VertexColors as any,
+  //       });
+  //       const polyline = new THREE.LineSegments(geometry, material);
+  //       polyline.frustumCulled = false;
+  //       this.polylines.push(polyline);
+  //       this.scene.add(polyline);
+  //     }
+  //   }
+
+  //  }
     //加2000个顶点，范围为-1到1
     let start = this.epoches[0]
     let end = this.epoches[1]
@@ -334,77 +412,80 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     let drawed = []
     let selectedLen
     // if (selectedLen !== this.selectedIndexList?.length ) {
-      // let count = 0,des = 0
-      console.log('selectedLen','refresh',selectedLen)
-      // selectedLen = this.selectedIndexList?.length
-      for (let i = 0; i < pointCount; i++) {
-        if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
-          let color = window.DVIDataList[2][i].color
-          var material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
-          // material.resolution.set(window.innerWidth, window.innerHeight);
-          var geometry = new THREE.Geometry()
-          let pointll = []
-          console.log('epochfrom',this.epoches,window.worldSpacePointPositions)
-          if (window.worldSpacePointPositions && window.worldSpacePointPositions.length > 1 && window.worldSpacePointPositions[this.epoches[1]] && window.isAnimatating) {
-            for (let wlen = this.epoches[0]; wlen <= posArr.length; wlen++) {
-              const x = window.worldSpacePointPositions[wlen][i * 3]
-              const y = window.worldSpacePointPositions[wlen][i * 3 + 1]
-              pointll.push(new THREE.Vector3(x, y,0))
-              drawed.push(i)
-            }
-            const curve = new THREE.SplineCurve(pointll);
-            let points = curve.getPoints(100)
-            var line = new THREE.CatmullRomCurve3(pointll);
-            // this.linesContainer.push(line
-            // let points = line.getPoints(100)
-            geometry.setFromPoints(points)
-            var linen = new THREE.Line(geometry, material);
-            if (!window.lineGeomertryList) {
-              window.lineGeomertryList = []
-            }
-            window.lineGeomertryList.push(linen)
-            this.scene.add(linen);
-          }
+    // let count = 0,des = 0
+    console.log('selectedLen', 'refresh', selectedLen)
+    selectedLen = this.selectedIndexList?.length
+    
+    for (let i = 0; i < pointCount; i++) {
 
-          // const x = getPos[i * 3] //范围在-1到1
-          // const y = getPos[i * 3 + 1]
-          // const z = getPos[i * 3 + 2]
-          // const x2 = getPos2[i * 3]
-          // const y2 = getPos2[i * 3 + 1]
-          // const z2 = getPos2[i * 3 + 2]
-          // const x3 = this.worldSpacePointPositions[i * 3]
-          // const y3 = this.worldSpacePointPositions[i * 3 + 1]
-          // let p1 = new THREE.Vector3(x, y, 0)
-          // let p2 = new THREE.Vector3(x2, y2, 0)
-          // let p3 = new THREE.Vector3(x3, y3, 0)
-          // console.log(pointll)
-          // pointll.push(p3)
-          // geometry.vertices.push(p1);
-          // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
-          // geometry.vertices.push(p2);
-          // pointsArray.push(new THREE.Vector3(x2, y2, z2))
-          // console.log('p2,p1', p2, p1, p3, geometry)
-          // pointsArray.push(new THREE.Vector3(x, y, z))
-          // this.linegeometry.setFromPoints(pointsArray)
-          // pointll.unshift(p1)
-          // pointll.push(p3)
-          // const curve = new THREE.SplineCurve(pointll);
-          // let points = curve.getPoints(50)
-          // var line = new THREE.CatmullRomCurve3(pointll);
-          // // this.linesContainer.push(line
-          // // let points = line.getPoints(100)
-          // geometry.setFromPoints(points)
-          // var linen = new THREE.Line(geometry, material);
-          // if (!window.lineGeomertryList) {
-          //   window.lineGeomertryList = []
-          // }
-          // window.lineGeomertryList.push(linen)
-          // this.scene.add(linen);
-          //顶点
-          //geometry.vertices.push(new THREE.Vector3(x,y,z))
+      if (this.selectedIndexList?.length && this.selectedIndexList.indexOf(i) !== -1) {
+        let color = window.DVIDataList[2][i].color
+        var material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+        // material.resolution.set(window.innerWidth, window.innerHeight);
+        const linegeometry = new THREE.Geometry()
+        let pointll = []
+        console.log('epochfrom', this.epoches, window.worldSpacePointPositions)
+        if (window.worldSpacePointPositions && window.worldSpacePointPositions.length > 1 && window.worldSpacePointPositions[this.epoches[1]] && window.isAnimatating) {
+          for (let wlen = this.epoches[0]; wlen <= posArr.length; wlen++) {
+            const x = window.worldSpacePointPositions[wlen][i * 3]
+            const y = window.worldSpacePointPositions[wlen][i * 3 + 1]
+            pointll.push(new THREE.Vector3(x, y, 0))
+            drawed.push(i)
+          }
+          const curve = new THREE.SplineCurve(pointll);
+          let points = curve.getPoints(100)
+          var line = new THREE.CatmullRomCurve3(pointll);
+          // this.linesContainer.push(line
+          // let points = line.getPoints(100)
+          linegeometry.setFromPoints(points)
+          var linen = new THREE.Line(linegeometry, material);
+          if (!window.lineGeomertryList) {
+            window.lineGeomertryList = []
+          }
+          this.polylines.push(linen);
+          window.lineGeomertryList.push(linen)
+          this.scene.add(linen);
         }
-        //用这个api传入顶点数组
+
+        // const x = getPos[i * 3] //范围在-1到1
+        // const y = getPos[i * 3 + 1]
+        // const z = getPos[i * 3 + 2]
+        // const x2 = getPos2[i * 3]
+        // const y2 = getPos2[i * 3 + 1]
+        // const z2 = getPos2[i * 3 + 2]
+        // const x3 = this.worldSpacePointPositions[i * 3]
+        // const y3 = this.worldSpacePointPositions[i * 3 + 1]
+        // let p1 = new THREE.Vector3(x, y, 0)
+        // let p2 = new THREE.Vector3(x2, y2, 0)
+        // let p3 = new THREE.Vector3(x3, y3, 0)
+        // console.log(pointll)
+        // pointll.push(p3)
+        // geometry.vertices.push(p1);
+        // // geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+        // geometry.vertices.push(p2);
+        // pointsArray.push(new THREE.Vector3(x2, y2, z2))
+        // console.log('p2,p1', p2, p1, p3, geometry)
+        // pointsArray.push(new THREE.Vector3(x, y, z))
+        // this.linegeometry.setFromPoints(pointsArray)
+        // pointll.unshift(p1)
+        // pointll.push(p3)
+        // const curve = new THREE.SplineCurve(pointll);
+        // let points = curve.getPoints(50)
+        // var line = new THREE.CatmullRomCurve3(pointll);
+        // // this.linesContainer.push(line
+        // // let points = line.getPoints(100)
+        // geometry.setFromPoints(points)
+        // var linen = new THREE.Line(geometry, material);
+        // if (!window.lineGeomertryList) {
+        //   window.lineGeomertryList = []
+        // }
+        // window.lineGeomertryList.push(linen)
+        // this.scene.add(linen);
+        //顶点
+        //geometry.vertices.push(new THREE.Vector3(x,y,z))
       }
+      //用这个api传入顶点数组
+    }
     // }
 
 
@@ -489,6 +570,11 @@ export class scatterPlotVisualizerTraceLine implements ScatterPlotVisualizer {
     this.scene = scene;
   }
   dispose() {
+    console.log('this.polylinegemo',this.polylines)
+    for (let i = 0; i < this.polylines?.length; i++) {
+      this.scene.remove(this.polylines[i]);
+      this.polylines[i].geometry.dispose();
+    }
     if (this.pointsMesh) {
       if (this.scene) {
         this.scene.remove(this.pointsMesh);

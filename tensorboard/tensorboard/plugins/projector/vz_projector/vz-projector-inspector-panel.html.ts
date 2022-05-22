@@ -345,7 +345,7 @@ export const template = html`
   <div>
   <div id="query-container">
       <div id="query-header-container">
-      <div id="query-header">Advanced Query</div>
+      <div id="query-header">Dynamically Selection</div>
           <paper-icon-button
             icon="[[collapseIcon]]"
             on-tap="_toggleMetadataContainer"
