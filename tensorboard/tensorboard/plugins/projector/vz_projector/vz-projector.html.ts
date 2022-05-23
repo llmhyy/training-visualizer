@@ -168,6 +168,7 @@ export const template = html`
         display: flex;
         align-items: center;
         visibility:hidden;
+        width: 0;
       }
 
       .status-bar-entry {
@@ -273,7 +274,8 @@ export const template = html`
         border-right: 1px solid rgba(0,0,0,0.5);
         border-left: 1px solid rgba(0,0,0,0.5);
         display:flex;
-        padding-right: 5px;
+        padding: 0 10px 0 5px;
+        margin-left: 10px;
       }
     </style>
     <paper-dialog id="notification-dialog" modal>
