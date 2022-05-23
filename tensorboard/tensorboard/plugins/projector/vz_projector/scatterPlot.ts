@@ -14,13 +14,13 @@ limitations under the License.
 ==============================================================================*/
 
 import * as THREE from 'three';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 import * as vector from './vector';
 import * as util from './util';
-import {ProjectorEventContext} from './projectorEventContext';
-import {CameraType, RenderContext, LabelRenderParams} from './renderContext';
-import {ScatterPlotVisualizer} from './scatterPlotVisualizer';
+import { ProjectorEventContext } from './projectorEventContext';
+import { CameraType, RenderContext, LabelRenderParams } from './renderContext';
+import { ScatterPlotVisualizer } from './scatterPlotVisualizer';
 import {
   ScatterBoundingBox,
   ScatterPlotRectangleSelector,
@@ -128,9 +128,11 @@ export class ScatterPlot {
     this.addInteractionListeners();
   }
   private addInteractionListeners() {
+    
     this.container.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
     this.container.addEventListener('mouseup', this.onMouseUp.bind(this));
+    // this.container.addEventListener('mouseup', this.onMousewheel.bind(this));
     this.container.addEventListener('click', this.onClick.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this), false);
     window.addEventListener('keyup', this.onKeyUp.bind(this), false);
@@ -150,7 +152,7 @@ export class ScatterPlot {
     });
     // End is called when the user stops interacting with the
     // controls (e.g. on mouse up, after dragging).
-    cameraControls.addEventListener('end', () => {});
+    cameraControls.addEventListener('end', () => { });
   }
   private makeOrbitControls(
     camera: THREE.Camera,
@@ -302,7 +304,7 @@ export class ScatterPlot {
     // Only call event handlers if the click originated from the scatter plot.
     if (!this.isDragSequence && notify) {
       let selection = this.nearestPoint != null ? [this.nearestPoint] : [];
-      if(this.nearestPoint >= this.realDataNumber) {
+      if (this.nearestPoint >= this.realDataNumber) {
         selection = [];
       }
       this.projectorEventContext.notifySelectionChanged(selection);
@@ -336,6 +338,51 @@ export class ScatterPlot {
       this.orbitCameraControls.mouseButtons.ORBIT = THREE.MOUSE.RIGHT;
       this.orbitCameraControls.mouseButtons.PAN = THREE.MOUSE.LEFT;
     }
+  }
+
+  goDown() {
+    console.log('down')
+    var factor = 1;
+    var vector = new THREE.Vector3(0, -3, 0.1);
+    vector.unproject(this.camera);
+    vector.sub(this.camera.position);
+    this.camera.position.subVectors(this.camera.position, vector.setLength(factor));
+    this.orbitCameraControls.target.subVectors(this.orbitCameraControls.target, vector.setLength(factor));
+    this.render();
+  }
+  goUp() {
+    var factor = 1;
+    var vector = new THREE.Vector3(0, 3, 0.1);
+    vector.unproject(this.camera);
+    vector.sub(this.camera.position);
+    this.camera.position.subVectors(this.camera.position, vector.setLength(factor));
+    this.orbitCameraControls.target.subVectors(this.orbitCameraControls.target, vector.setLength(factor));
+    this.render();
+  }
+  goLeft() {
+    var factor = 1;
+    var vector = new THREE.Vector3(-2, 0, 0.1);
+    vector.unproject(this.camera);
+    vector.sub(this.camera.position);
+    this.camera.position.subVectors(this.camera.position, vector.setLength(factor));
+    this.orbitCameraControls.target.subVectors(this.orbitCameraControls.target, vector.setLength(factor));
+    this.render();
+  }
+  goRight() {
+    var factor = 1;
+    var vector = new THREE.Vector3(2, 0, 0.1);
+    vector.unproject(this.camera);
+    vector.sub(this.camera.position);
+    this.camera.position.subVectors(this.camera.position, vector.setLength(factor));
+    this.orbitCameraControls.target.subVectors(this.orbitCameraControls.target, vector.setLength(factor));
+    this.render();
+  }
+  private resetCamera() {
+    const def = this.cameraDef || this.makeDefaultCameraDef(3);
+    this.recreateCamera(def)
+  }
+  reset2dCamera() {
+    this.resetZoom()
   }
   /** When we stop dragging/zooming, return to normal behavior. */
   private onMouseUp(e: any) {
@@ -443,8 +490,8 @@ export class ScatterPlot {
     let pointIndices = this.getPointIndicesFromPickingTexture(boundingBox);
     // remove backgound
     let validIndices = [];
-    for(let i=0;i<pointIndices.length;i++){
-      if(pointIndices[i]<this.realDataNumber){
+    for (let i = 0; i < pointIndices.length; i++) {
+      if (pointIndices[i] < this.realDataNumber) {
         validIndices.push(pointIndices[i]);
       }
     }
@@ -671,7 +718,7 @@ export class ScatterPlot {
     this.labels = labels;
   }
   /** Set the colors for every data polyline. (RGB triplets) */
-  setPolylineColors(colors: {[polylineIndex: number]: Float32Array}) {
+  setPolylineColors(colors: { [polylineIndex: number]: Float32Array }) {
     this.polylineColors = colors;
   }
   setPolylineOpacities(opacities: Float32Array) {

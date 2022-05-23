@@ -172,8 +172,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   */
   private invAccTrain: HTMLElement;
   private invAccTest: HTMLElement;
-  private invConfTrain: HTMLElement;
-  private invConfTest: HTMLElement;
+  // private invConfTrain: HTMLElement;
+  // private invConfTest: HTMLElement;
   private accTrain: HTMLElement;
   private accTest: HTMLElement;
 
@@ -226,8 +226,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
 
     this.invAccTrain = this.$$('.inv_acc_train') as HTMLElement;
     this.invAccTest = this.$$('.inv_acc_test') as HTMLElement;
-    this.invConfTrain = this.$$('.inv_conf_train') as HTMLElement;
-    this.invConfTest = this.$$('.inv_conf_test') as HTMLElement;
+    // this.invConfTrain = this.$$('.inv_conf_train') as HTMLElement;
+    // this.invConfTest = this.$$('.inv_conf_test') as HTMLElement;
     this.accTrain = this.$$('.acc_train') as HTMLElement;
     this.accTest = this.$$('.acc_test') as HTMLElement;
   }
@@ -285,8 +285,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
      */
      this.invAccTrain.innerText = ''+evaluation.inv_acc_train;
      this.invAccTest.innerText = ''+evaluation.inv_acc_test;
-     this.invConfTrain.innerText = ''+evaluation.inv_conf_train;
-     this.invConfTest.innerText = ''+evaluation.inv_conf_test;
+    //  this.invConfTrain.innerText = ''+evaluation.inv_conf_train;
+    //  this.invConfTest.innerText = ''+evaluation.inv_conf_test;
      this.accTrain.innerText = ''+evaluation.acc_train;
      this.accTest.innerText = ''+evaluation.acc_test;
   }

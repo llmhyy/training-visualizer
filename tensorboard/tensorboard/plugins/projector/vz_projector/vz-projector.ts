@@ -147,6 +147,11 @@ class Projector
   private analyticsLogger: AnalyticsLogger;
   private backgroundPoints: any;
 
+  private goDownBtn:any;
+  private goUpBtn:any;
+  private goLeftBtn:any;
+  private goRightBtn:any;
+
   private timer: any;
 
   async ready() {
@@ -180,6 +185,10 @@ class Projector
     this.bookmarkPanel = this.$['bookmark-panel'] as any; // BookmarkPanel
     this.metadataCard = this.$['metadata-card'] as any; // MetadataCard
     this.statusBar = this.$$('#status-bar') as HTMLDivElement;
+    this.goDownBtn = this.$$('#cavasGoDown') as HTMLElement;
+    this.goUpBtn = this.$$('#cavasGoUp') as HTMLElement;
+    this.goLeftBtn = this.$$('#cavasGoLeft') as HTMLElement;
+    this.goRightBtn = this.$$('#cavasGoRight') as HTMLElement;
     this.inspectorPanel.initialize(this, this as ProjectorEventContext);
     this.projectionsPanel.initialize(this);
     this.bookmarkPanel.initialize(this, this as ProjectorEventContext);
@@ -705,6 +714,23 @@ class Projector
     let triangleModeBtn = this.$$("#triangleMode");
     triangleModeBtn.addEventListener('click', () => {
       this.projectorScatterPlotAdapter.setTriangleMode((triangleModeBtn as any).active)
+    })
+
+    this.goDownBtn.addEventListener('click',(e)=>{
+      // this.scattor
+      this.projectorScatterPlotAdapter.scatterPlot.goDown()
+    })
+
+    this.goUpBtn.addEventListener('click',(e) =>{
+      this.projectorScatterPlotAdapter.scatterPlot.goUp()
+    })
+
+    this.goLeftBtn.addEventListener('click',(e) =>{
+      this.projectorScatterPlotAdapter.scatterPlot.goLeft()
+    })
+
+    this.goRightBtn.addEventListener('click',(e) =>{
+      this.projectorScatterPlotAdapter.scatterPlot.goRight()
     })
 
     window.addEventListener('resize', () => {
