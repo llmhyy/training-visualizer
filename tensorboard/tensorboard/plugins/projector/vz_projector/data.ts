@@ -827,6 +827,7 @@ export class DataSet {
           headers: headers,
           mode: 'cors'
         }).then(response => response.json()).then(data => {
+          iteration ++ 
           const result = data.result;
           const grid_index = data.grid_index;
           const grid_color = data.grid_color;
