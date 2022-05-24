@@ -200,7 +200,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     );
     // TODO change them based on metadata fields
     this.searchFields = ["type", "label", "new_selection"]
-    this.statergyList = ["random", "coreset", 'kmeans', "kmeans"]
+    this.statergyList = ["random", "coreset", 'bayesianLeastConfidence', "LeastConfidence"]
     // TODO read real points length from dataSet
     for (let i = 0; i < 60000; i++) {
       this.filterIndices.push(i);
