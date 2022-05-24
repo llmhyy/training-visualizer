@@ -524,10 +524,10 @@ export class DataSet {
 
             const evaluation = data.evaluation;
             this.DVIEvaluation[iteration] = evaluation;
-            const inv_acc = data.inv_acc_list;
+            const inv_acc = data.inv_acc_list || [];
 
-            const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
-            this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
+            // const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot?.is_exist;
+            // this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
 
             const filterIndices = data.selectedPoints;
 
@@ -606,22 +606,25 @@ export class DataSet {
               }
               dataPoint.new_selection[iteration] = false;
               dataPoint.current_new_selection = false;
-              dataPoint.original_label = original_label_list[i];
-              dataPoint.noisy = false;
-              if (is_uncertainty_diversity_tot_exist) {
-                dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
-                dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
-                dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
-                dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
-                dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
-                dataPoint.tot[iteration] = dataPoint.metadata['tot'];
-                dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
-                dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
-                dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
-                dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
-                dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
-                dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+              if(original_label_list){
+                dataPoint.original_label = original_label_list[i];
               }
+
+              dataPoint.noisy = false;
+              // if (is_uncertainty_diversity_tot_exist) {
+              //   dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
+              //   dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
+              //   dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
+              //   dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
+              //   dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
+              //   dataPoint.tot[iteration] = dataPoint.metadata['tot'];
+              //   dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+              //   dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+              //   dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
+              //   dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
+              //   dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
+              //   dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+              // }
             }
 
             for (let i = 0; i < background_point_number; i++) {
@@ -645,20 +648,20 @@ export class DataSet {
               dataPoint.current_wrong_prediction = undefined;
               dataPoint.original_label = "background";
               dataPoint.noisy = undefined;
-              if (is_uncertainty_diversity_tot_exist) {
-                dataPoint.metadata['uncertainty'] = -1;
-                dataPoint.uncertainty[iteration] = -1;
-                dataPoint.metadata['diversity'] = -1;
-                dataPoint.diversity[iteration] = -1;
-                dataPoint.metadata['tot'] = -1;
-                dataPoint.tot[iteration] = -1;
-                dataPoint.uncertainty_ranking[iteration] = -1;
-                dataPoint.current_uncertainty_ranking = -1;
-                dataPoint.diversity_ranking[iteration] = -1;
-                dataPoint.current_diversity_ranking = -1;
-                dataPoint.tot_ranking[iteration] = -1;
-                dataPoint.current_tot_ranking = -1;
-              }
+              // if (is_uncertainty_diversity_tot_exist) {
+              //   dataPoint.metadata['uncertainty'] = -1;
+              //   dataPoint.uncertainty[iteration] = -1;
+              //   dataPoint.metadata['diversity'] = -1;
+              //   dataPoint.diversity[iteration] = -1;
+              //   dataPoint.metadata['tot'] = -1;
+              //   dataPoint.tot[iteration] = -1;
+              //   dataPoint.uncertainty_ranking[iteration] = -1;
+              //   dataPoint.current_uncertainty_ranking = -1;
+              //   dataPoint.diversity_ranking[iteration] = -1;
+              //   dataPoint.current_diversity_ranking = -1;
+              //   dataPoint.tot_ranking[iteration] = -1;
+              //   dataPoint.current_tot_ranking = -1;
+              // }
             }
 
             for (let i = real_data_number + background_point_number; i < this.points.length; i++) {
@@ -687,11 +690,11 @@ export class DataSet {
               dataPoint.current_new_selection = true;
             }
 
-            for (let i = 0; i < noisy_data.length; i++) {
-              const dataIndex = noisy_data[i];
-              let dataPoint = this.points[dataIndex];
-              dataPoint.noisy = true;
-            }
+            // for (let i = 0; i < noisy_data?.length; i++) {
+            //   const dataIndex = noisy_data[i];
+            //   let dataPoint = this.points[dataIndex];
+            //   dataPoint.noisy = true;
+            // }
 
             // const matches = this.get_match();
             //
@@ -746,14 +749,14 @@ export class DataSet {
         if (dataPoint.current_new_selection) {
           newSelection.push(i);
         }
-        if (this.is_uncertainty_diversity_tot_exist[iteration]) {
-          dataPoint.metadata['uncertainty'] = dataPoint.uncertainty[iteration];
-          dataPoint.metadata['diversity'] = dataPoint.diversity[iteration];
-          dataPoint.metadata['tot'] = dataPoint.tot[iteration];
-          dataPoint.current_uncertainty_ranking = dataPoint.uncertainty_ranking[iteration];
-          dataPoint.current_diversity_ranking = dataPoint.diversity_ranking[iteration];
-          dataPoint.current_tot_ranking = dataPoint.tot_ranking[iteration];
-        }
+        // if (this.is_uncertainty_diversity_tot_exist[iteration]) {
+        //   dataPoint.metadata['uncertainty'] = dataPoint.uncertainty[iteration];
+        //   dataPoint.metadata['diversity'] = dataPoint.diversity[iteration];
+        //   dataPoint.metadata['tot'] = dataPoint.tot[iteration];
+        //   dataPoint.current_uncertainty_ranking = dataPoint.uncertainty_ranking[iteration];
+        //   dataPoint.current_diversity_ranking = dataPoint.diversity_ranking[iteration];
+        //   dataPoint.current_tot_ranking = dataPoint.tot_ranking[iteration];
+        // }
       }
       for (let i = validDataNumber; i < this.points.length; i++) {
         let dataPoint = this.points[i];
@@ -854,10 +857,10 @@ export class DataSet {
 
           const evaluation = data.evaluation;
           this.DVIEvaluation[iteration] = evaluation;
-          const inv_acc = data.inv_acc_list;
+          const inv_acc = data.inv_acc_list || [];
 
-          const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
-          this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
+          // const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot?.is_exist;
+          // this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
 
           const filterIndices = data.selectedPoints;
 
@@ -936,22 +939,24 @@ export class DataSet {
             }
             dataPoint.new_selection[iteration] = false;
             dataPoint.current_new_selection = false;
-            dataPoint.original_label = original_label_list[i];
-            dataPoint.noisy = false;
-            if (is_uncertainty_diversity_tot_exist) {
-              dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
-              dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
-              dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
-              dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
-              dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
-              dataPoint.tot[iteration] = dataPoint.metadata['tot'];
-              dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
-              dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
-              dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
-              dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
-              dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
-              dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+            if(original_label_list){
+              dataPoint.original_label = original_label_list[i];
             }
+            dataPoint.noisy = false;
+            // if (is_uncertainty_diversity_tot_exist) {
+            //   dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
+            //   dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
+            //   dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
+            //   dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
+            //   dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
+            //   dataPoint.tot[iteration] = dataPoint.metadata['tot'];
+            //   dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+            //   dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+            //   dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
+            //   dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
+            //   dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
+            //   dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+            // }
           }
 
           for (let i = 0; i < background_point_number; i++) {
@@ -975,20 +980,20 @@ export class DataSet {
             dataPoint.current_wrong_prediction = undefined;
             dataPoint.original_label = "background";
             dataPoint.noisy = undefined;
-            if (is_uncertainty_diversity_tot_exist) {
-              dataPoint.metadata['uncertainty'] = -1;
-              dataPoint.uncertainty[iteration] = -1;
-              dataPoint.metadata['diversity'] = -1;
-              dataPoint.diversity[iteration] = -1;
-              dataPoint.metadata['tot'] = -1;
-              dataPoint.tot[iteration] = -1;
-              dataPoint.uncertainty_ranking[iteration] = -1;
-              dataPoint.current_uncertainty_ranking = -1;
-              dataPoint.diversity_ranking[iteration] = -1;
-              dataPoint.current_diversity_ranking = -1;
-              dataPoint.tot_ranking[iteration] = -1;
-              dataPoint.current_tot_ranking = -1;
-            }
+            // if (is_uncertainty_diversity_tot_exist) {
+            //   dataPoint.metadata['uncertainty'] = -1;
+            //   dataPoint.uncertainty[iteration] = -1;
+            //   dataPoint.metadata['diversity'] = -1;
+            //   dataPoint.diversity[iteration] = -1;
+            //   dataPoint.metadata['tot'] = -1;
+            //   dataPoint.tot[iteration] = -1;
+            //   dataPoint.uncertainty_ranking[iteration] = -1;
+            //   dataPoint.current_uncertainty_ranking = -1;
+            //   dataPoint.diversity_ranking[iteration] = -1;
+            //   dataPoint.current_diversity_ranking = -1;
+            //   dataPoint.tot_ranking[iteration] = -1;
+            //   dataPoint.current_tot_ranking = -1;
+            // }
           }
 
           for (let i = real_data_number + background_point_number; i < this.points.length; i++) {
@@ -1017,11 +1022,11 @@ export class DataSet {
             dataPoint.current_new_selection = true;
           }
 
-          for (let i = 0; i < noisy_data.length; i++) {
-            const dataIndex = noisy_data[i];
-            let dataPoint = this.points[dataIndex];
-            dataPoint.noisy = true;
-          }
+          // for (let i = 0; i < noisy_data?.length; i++) {
+          //   const dataIndex = noisy_data[i];
+          //   let dataPoint = this.points[dataIndex];
+          //   dataPoint.noisy = true;
+          // }
 
           // const matches = this.get_match();
           //
