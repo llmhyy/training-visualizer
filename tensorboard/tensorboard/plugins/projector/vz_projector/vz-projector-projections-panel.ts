@@ -13,17 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-import {PolymerElement} from '@polymer/polymer';
-import {customElement, observe, property} from '@polymer/decorators';
+import { PolymerElement } from '@polymer/polymer';
+import { customElement, observe, property } from '@polymer/decorators';
 import {
   ColorLegendThreshold,
   ColorLegendRenderInfo,
 } from './vz-projector-legend';
 import * as d3 from 'd3';
-import {LegacyElementMixin} from '../../../components/polymer/legacy_element_mixin';
+import { LegacyElementMixin } from '../../../components/polymer/legacy_element_mixin';
 import '../../../components/polymer/irons_and_papers';
 
-import {template} from './vz-projector-projections-panel.html';
+import { template } from './vz-projector-projections-panel.html';
 import './vz-projector-input';
 import {
   DataSet,
@@ -64,53 +64,53 @@ type Centroids = {
 class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   static readonly template = template;
 
-  @property({type: String, notify: true})
+  @property({ type: String, notify: true })
   selectedColorOptionName: string;
-  @property({type: String, notify: true})
+  @property({ type: String, notify: true })
   selectedLabelOption: string;
-  @property({type: String})
+  @property({ type: String })
   metadataEditorColumn: string;
-  @property({type: Boolean})
+  @property({ type: Boolean })
   showForceCategoricalColorsCheckbox: boolean;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   pcaIs3d: boolean = true;
-  @property({type: Boolean})
+  @property({ type: Boolean })
   tSNEis3d: boolean = false;
-  @property({type: Number})
+  @property({ type: Number })
   superviseFactor: number = 0;
   // UMAP parameters
-  @property({type: Boolean})
+  @property({ type: Boolean })
   umapIs3d: boolean = true;
-  @property({type: Number})
+  @property({ type: Number })
   umapNeighbors: number = 15;
   // PCA projection.
-  @property({type: Array})
+  @property({ type: Array })
   pcaComponents: Array<{
     id: number;
     componentNumber: number;
     percVariance: string;
   }>;
-  @property({type: Number})
+  @property({ type: Number })
   pcaX: number = 0;
-  @property({type: Number})
+  @property({ type: Number })
   pcaY: number = 1;
-  @property({type: Number})
+  @property({ type: Number })
   pcaZ: number = 2;
   // Custom projection.
-  @property({type: String})
+  @property({ type: String })
   customSelectedSearchByMetadataOption: string;
 
-  @property({type: String})
+  @property({ type: String })
   subjectModelPathEditorInput: string = "/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/";
 
-  @property({type: String})
+  @property({ type: String })
   resolutionEditorInput: number;
 
-  @property({type:Number})
-  iterationEditorInput:number;
+  @property({ type: Number })
+  iterationEditorInput: number;
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   keepSearchPredicate: boolean = true;
   // Decide wether to keep indices or search predicates, true represents search predicates
 
@@ -177,17 +177,17 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   private accTrain: HTMLElement;
   private accTest: HTMLElement;
 
-  private iterationInput:number;
+  private iterationInput: number;
 
   initialize(projector: any) {
-    console.log('projector',projector)
+    console.log('projector', projector)
     this.polymerChangesTriggerReprojection = true;
     this.projector = projector;
     // Set up TSNE projections.
     this.perplexity = 30;
     this.learningRate = 10;
     // Setup Custom projections.
-    this.centroidValues = {xLeft: null, xRight: null, yUp: null, yDown: null};
+    this.centroidValues = { xLeft: null, xRight: null, yUp: null, yDown: null };
     this.clearCentroids();
     this.setupUIControls();
   }
@@ -197,7 +197,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.zDropdown = this.$$('#z-dropdown') as HTMLElement;
     //this.runTsneButton = this.$$('.run-tsne') as HTMLButtonElement;
     //this.runTsneButton.innerText = 'Run';
-   // this.pauseTsneButton = this.$$('.pause-tsne') as HTMLButtonElement;
+    // this.pauseTsneButton = this.$$('.pause-tsne') as HTMLButtonElement;
     //this.pauseTsneButton.disabled = true;
     //this.perturbTsneButton = this.$$('.perturb-tsne') as HTMLButtonElement;
     this.previousDVIButton = this.$$('.previous-dvi') as HTMLButtonElement;
@@ -260,35 +260,35 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       this.dataSet.setSuperviseFactor(this.superviseFactor);
     }
   }*/
-   private subjectModelPathEditorInputChange() {
+  private subjectModelPathEditorInputChange() {
     this.dataSet.DVIsubjectModelPath = this.subjectModelPathEditorInput;
   }
-  private resolutionEditorInputChange(){
+  private resolutionEditorInputChange() {
     this.dataSet.DVIResolution = this.resolutionEditorInput;
   }
-  private iterationEditorInputChange(){
+  private iterationEditorInputChange() {
     this.iterationInput = Number(this.iterationEditorInput);
     console.log(this.iterationInput);
   }
   private updateEvaluationInformation(evaluation: any) {
-     this.nnTrain15.innerText = ''+evaluation.nn_train_15;
-     this.nnTest15.innerText = ''+evaluation.nn_test_15;
-     this.boundTrain15.innerText = ''+evaluation.bound_train_15;
-     this.boundTest15.innerText = ''+evaluation.bound_test_15;
-     /*
-     this.invNnTrain10.innerText = ''+evaluation.inv_nn_train_10;
-     this.invNnTrain15.innerText = ''+evaluation.inv_nn_train_15;
-     this.invNnTrain30.innerText = ''+evaluation.inv_nn_train_30;
-     this.invNnTest10.innerText = ''+evaluation.inv_nn_test_10;
-     this.invNnTest15.innerText = ''+evaluation.inv_nn_test_15;
-     this.invNnTest30.innerText = ''+evaluation.inv_nn_test_30;
-     */
-     this.invAccTrain.innerText = ''+evaluation.inv_acc_train;
-     this.invAccTest.innerText = ''+evaluation.inv_acc_test;
+    this.nnTrain15.innerText = '' + evaluation.nn_train_15;
+    this.nnTest15.innerText = '' + evaluation.nn_test_15;
+    this.boundTrain15.innerText = '' + evaluation.bound_train_15;
+    this.boundTest15.innerText = '' + evaluation.bound_test_15;
+    /*
+    this.invNnTrain10.innerText = ''+evaluation.inv_nn_train_10;
+    this.invNnTrain15.innerText = ''+evaluation.inv_nn_train_15;
+    this.invNnTrain30.innerText = ''+evaluation.inv_nn_train_30;
+    this.invNnTest10.innerText = ''+evaluation.inv_nn_test_10;
+    this.invNnTest15.innerText = ''+evaluation.inv_nn_test_15;
+    this.invNnTest30.innerText = ''+evaluation.inv_nn_test_30;
+    */
+    this.invAccTrain.innerText = '' + evaluation.inv_acc_train;
+    this.invAccTest.innerText = '' + evaluation.inv_acc_test;
     //  this.invConfTrain.innerText = ''+evaluation.inv_conf_train;
     //  this.invConfTest.innerText = ''+evaluation.inv_conf_test;
-     this.accTrain.innerText = ''+evaluation.acc_train;
-     this.accTest.innerText = ''+evaluation.acc_test;
+    this.accTrain.innerText = '' + evaluation.acc_train;
+    this.accTest.innerText = '' + evaluation.acc_test;
   }
   private setupUIControls() {
     {
@@ -344,141 +344,141 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       this.nextDVIButton.disabled = true;
       this.previousDVIButton.disabled = true;
       this.jumpDVIButton.disabled = true;
-      if(this.dataSet.tSNEIteration <= 2) {
+      if (this.dataSet.tSNEIteration <= 2) {
         this.previousDVIButton.disabled = true;
       }
-      
-      this.dataSet.projectDVI(this.dataSet.tSNEIteration - 1,this.projector.inspectorPanel.currentPredicate,
-          (iteration: number|null, evaluation:any, new_selection:any[], indices:number[],totalIter?: number) => {
-        /**
-         * get filter index
-         */
-        //get search predicates or indices
-        var filterIndices:number[];
-        filterIndices = []
-        if(this.temporalStatus){
-          //search predicate
-          this.projector.inspectorPanel.filterIndices = indices;
-        }
-        //indices
-        filterIndices = this.projector.inspectorPanel.filterIndices;
-        // TODO initilize dataset, set inspector filter indices to be all
-        this.projector.dataSet.setDVIFilteredData(filterIndices);
-        if (iteration != null) {
-          this.iterationLabelTsne.innerText = '' + iteration;
-          this.totalIterationLabelDVI.innerText = '' + totalIter;
-          this.updateEvaluationInformation(evaluation);
-          // this.projector.notifyProjectionPositionsUpdated(new_selection);
-          this.projector.notifyProjectionPositionsUpdated();
-          this.projector.onProjectionChanged();
-          this.projector.onIterationChange(iteration);
-        } else {
-          this.projector.onProjectionChanged();
-        }
-        if(this.dataSet.tSNEIteration > 1) {
+
+      this.dataSet.projectDVI(this.dataSet.tSNEIteration - 1, this.projector.inspectorPanel.currentPredicate,
+        (iteration: number | null, evaluation: any, new_selection: any[], indices: number[], totalIter?: number) => {
+          /**
+           * get filter index
+           */
+          //get search predicates or indices
+          var filterIndices: number[];
+          filterIndices = []
+          if (this.temporalStatus) {
+            //search predicate
+            this.projector.inspectorPanel.filterIndices = indices;
+          }
+          //indices
+          filterIndices = this.projector.inspectorPanel.filterIndices;
+          // TODO initilize dataset, set inspector filter indices to be all
+          this.projector.dataSet.setDVIFilteredData(filterIndices);
+          if (iteration != null) {
+            this.iterationLabelTsne.innerText = '' + iteration;
+            this.totalIterationLabelDVI.innerText = '' + totalIter;
+            this.updateEvaluationInformation(evaluation);
+            // this.projector.notifyProjectionPositionsUpdated(new_selection);
+            this.projector.notifyProjectionPositionsUpdated();
+            this.projector.onProjectionChanged();
+            this.projector.onIterationChange(iteration);
+          } else {
+            this.projector.onProjectionChanged();
+          }
+          if (this.dataSet.tSNEIteration > 1) {
             this.previousDVIButton.disabled = false;
           }
-        logging.setModalMessage(null, msgId);
-        this.nextDVIButton.disabled = false;
-        this.jumpDVIButton.disabled = false;
-      });
+          logging.setModalMessage(null, msgId);
+          this.nextDVIButton.disabled = false;
+          this.jumpDVIButton.disabled = false;
+        });
     });
-    this.nextDVIButton.addEventListener('click', ()=> {
+    this.nextDVIButton.addEventListener('click', () => {
       const msgId = logging.setModalMessage('loading...');
       this.nextDVIButton.disabled = true;
       this.previousDVIButton.disabled = true;
       this.jumpDVIButton.disabled = true;
-      this.dataSet.projectDVI(this.dataSet.tSNEIteration + 1,this.projector.inspectorPanel.currentPredicate,
-          (iteration: number|null, evaluation:any, newSelection:any[], indices:number[], totalIter?: number) => {
-        /**
-         * get filter index
-         */
-        //get search predicates or indices
-        var filterIndices:number[];
-        filterIndices = []
-        if(this.temporalStatus){
-          //search predicate
-          this.projector.inspectorPanel.filterIndices = indices;
-        }
-        //indices
-        filterIndices = this.projector.inspectorPanel.filterIndices;
-        console.log(filterIndices.length);
-        this.projector.dataSet.setDVIFilteredData(filterIndices);
+      this.dataSet.projectDVI(this.dataSet.tSNEIteration + 1, this.projector.inspectorPanel.currentPredicate,
+        (iteration: number | null, evaluation: any, newSelection: any[], indices: number[], totalIter?: number) => {
+          /**
+           * get filter index
+           */
+          //get search predicates or indices
+          var filterIndices: number[];
+          filterIndices = []
+          if (this.temporalStatus) {
+            //search predicate
+            this.projector.inspectorPanel.filterIndices = indices;
+          }
+          //indices
+          filterIndices = this.projector.inspectorPanel.filterIndices;
+          console.log(filterIndices.length);
+          this.projector.dataSet.setDVIFilteredData(filterIndices);
 
-        if (iteration != null) {
-          this.iterationLabelTsne.innerText = '' + iteration;
-          this.totalIterationLabelDVI.innerText = '' + totalIter;
-          this.updateEvaluationInformation(evaluation);
-          // this.projector.notifyProjectionPositionsUpdated(newSelection);
-          this.projector.notifyProjectionPositionsUpdated();
-          this.projector.onProjectionChanged();
-          this.projector.onIterationChange(iteration);
-          if(this.dataSet.tSNEIteration > 1) {
-            this.previousDVIButton.disabled = false;
-          }
-          if(this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
+          if (iteration != null) {
+            this.iterationLabelTsne.innerText = '' + iteration;
+            this.totalIterationLabelDVI.innerText = '' + totalIter;
+            this.updateEvaluationInformation(evaluation);
+            // this.projector.notifyProjectionPositionsUpdated(newSelection);
+            this.projector.notifyProjectionPositionsUpdated();
+            this.projector.onProjectionChanged();
+            this.projector.onIterationChange(iteration);
+            if (this.dataSet.tSNEIteration > 1) {
+              this.previousDVIButton.disabled = false;
+            }
+            if (this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
+              this.nextDVIButton.disabled = false;
+            }
+          } else {
             this.nextDVIButton.disabled = false;
+            this.projector.onProjectionChanged();
           }
-        } else {
-          this.nextDVIButton.disabled = false;
-          this.projector.onProjectionChanged();
-        }
-        logging.setModalMessage(null, msgId);
-        this.jumpDVIButton.disabled = false;
-      });
+          logging.setModalMessage(null, msgId);
+          this.jumpDVIButton.disabled = false;
+        });
     });
-    this.jumpDVIButton.addEventListener('click', ()=> {
+    this.jumpDVIButton.addEventListener('click', () => {
       const msgId = logging.setModalMessage('loading...');
       this.jumpDVIButton.disabled = true;
-      if(this.iterationInput > this.dataSet.tSNETotalIter||this.iterationInput<1){
+      if (this.iterationInput > this.dataSet.tSNETotalIter || this.iterationInput < 1) {
         logging.setErrorMessage("Invaild Input!", null);
         this.jumpDVIButton.disabled = false;
         return;
-      }else if(this.iterationInput == this.dataSet.tSNEIteration){
+      } else if (this.iterationInput == this.dataSet.tSNEIteration) {
         logging.setWarningMessage("current iteration!");
         this.jumpDVIButton.disabled = false;
         return;
       }
       this.nextDVIButton.disabled = true;
       this.previousDVIButton.disabled = true;
-      this.dataSet.projectDVI(this.iterationInput,this.projector.inspectorPanel.currentPredicate,
-          (iteration: number|null, evaluation:any, newSelection:any[], indices:number[], totalIter?: number) => {
-        /**
-         * get filter index
-         */
-        //get search predicates or indices
-        var filterIndices:number[];
-        filterIndices = []
-        if(this.temporalStatus){
-          //search predicate
-          this.projector.inspectorPanel.filterIndices = indices;
-        }
-        //indices
-        filterIndices = this.projector.inspectorPanel.filterIndices;
-        console.log(filterIndices.length);
-        this.projector.dataSet.setDVIFilteredData(filterIndices);
+      this.dataSet.projectDVI(this.iterationInput, this.projector.inspectorPanel.currentPredicate,
+        (iteration: number | null, evaluation: any, newSelection: any[], indices: number[], totalIter?: number) => {
+          /**
+           * get filter index
+           */
+          //get search predicates or indices
+          var filterIndices: number[];
+          filterIndices = []
+          if (this.temporalStatus) {
+            //search predicate
+            this.projector.inspectorPanel.filterIndices = indices;
+          }
+          //indices
+          filterIndices = this.projector.inspectorPanel.filterIndices;
+          console.log(filterIndices.length);
+          this.projector.dataSet.setDVIFilteredData(filterIndices);
 
-        if (iteration != null) {
-          this.iterationLabelTsne.innerText = '' + iteration;
-          this.totalIterationLabelDVI.innerText = '' + totalIter;
-          this.updateEvaluationInformation(evaluation);
-          // this.projector.notifyProjectionPositionsUpdated(newSelection);
-          this.projector.notifyProjectionPositionsUpdated();
-          this.projector.onProjectionChanged();
-          this.projector.onIterationChange(iteration);
-          if(this.dataSet.tSNEIteration > 1) {
-            this.previousDVIButton.disabled = false;
-          }
-          if(this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
+          if (iteration != null) {
+            this.iterationLabelTsne.innerText = '' + iteration;
+            this.totalIterationLabelDVI.innerText = '' + totalIter;
+            this.updateEvaluationInformation(evaluation);
+            // this.projector.notifyProjectionPositionsUpdated(newSelection);
+            this.projector.notifyProjectionPositionsUpdated();
+            this.projector.onProjectionChanged();
+            this.projector.onIterationChange(iteration);
+            if (this.dataSet.tSNEIteration > 1) {
+              this.previousDVIButton.disabled = false;
+            }
+            if (this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
+              this.nextDVIButton.disabled = false;
+            }
+          } else {
             this.nextDVIButton.disabled = false;
+            this.projector.onProjectionChanged();
           }
-        } else {
-          this.nextDVIButton.disabled = false;
-          this.projector.onProjectionChanged();
-        }
-        logging.setModalMessage(null, msgId);
-        this.jumpDVIButton.disabled = false;
-      });
+          logging.setModalMessage(null, msgId);
+          this.jumpDVIButton.disabled = false;
+        });
     });
 
     /*
@@ -541,6 +541,45 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       (inputs[i] as HTMLElement).style.fontSize = '14px';
     }
   }
+  retrainBySelections(iteration: number, selections: number[]) {
+
+    const msgId = logging.setModalMessage('training and loading...')
+    this.dataSet.reTrainByDVI(iteration, selections,
+      (iteration: number | null, evaluation: any, new_selection: any[], indices: number[], totalIter?: number) => {
+        /**
+         * get filter index
+         */
+        //get search predicates or indices
+        var filterIndices: number[];
+        filterIndices = []
+        if (this.temporalStatus) {
+          //search predicate
+          this.projector.inspectorPanel.filterIndices = indices;
+        }
+        //indices
+        filterIndices = this.projector.inspectorPanel.filterIndices;
+        // TODO initilize dataset, set inspector filter indices to be all
+        this.projector.dataSet.setDVIFilteredData(filterIndices);
+        if (iteration != null) {
+          this.iterationLabelTsne.innerText = '' + iteration;
+          this.totalIterationLabelDVI.innerText = '' + totalIter;
+          this.updateEvaluationInformation(evaluation);
+          // this.projector.notifyProjectionPositionsUpdated(new_selection);
+          this.projector.notifyProjectionPositionsUpdated();
+          this.projector.onProjectionChanged();
+          this.projector.onIterationChange(iteration);
+        } else {
+          this.projector.onProjectionChanged();
+        }
+        if (this.dataSet.tSNEIteration > 1) {
+          this.previousDVIButton.disabled = false;
+        }
+        logging.setModalMessage(null, msgId);
+        this.nextDVIButton.disabled = false;
+        this.jumpDVIButton.disabled = false;
+      });
+  }
+
   restoreUIFromBookmark(bookmark: State) {
     this.disablePolymerChangesTriggerReprojection();
     // PCA
@@ -601,6 +640,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     }
     this.enablePolymerChangesTriggerReprojection();
   }
+
   populateBookmarkFromUI(bookmark: State) {
     this.disablePolymerChangesTriggerReprojection();
     // PCA
@@ -699,7 +739,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
           count: item.count,
         };
       });
-      this.colorLegendRenderInfo = {items, thresholds: null};
+      this.colorLegendRenderInfo = { items, thresholds: null };
     } else {
       this.colorLegendRenderInfo = {
         items: null,
@@ -721,13 +761,13 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   }
 
   @observe('temporalStatus')
-  _DVITemporalStatusObserver(){
+  _DVITemporalStatusObserver() {
 
   }
-  metadataChanged(spriteAndMetadata: SpriteAndMetadataInfo,metadataFile?: string) {
+  metadataChanged(spriteAndMetadata: SpriteAndMetadataInfo, metadataFile?: string) {
     // Project by options for custom projections.
     if (metadataFile != null) {
-     // this.metadataFile = metadataFile;
+      // this.metadataFile = metadataFile;
     }
     this.updateMetadataUI(spriteAndMetadata.stats);
     if (
@@ -749,7 +789,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       Math.max(0, searchByMetadataIndex)
     ];
   }
-  private updateMetadataUI(columnStats: ColumnStats[]){
+  private updateMetadataUI(columnStats: ColumnStats[]) {
     // Label by options.
     let labelIndex = -1;
     this.labelOptions = columnStats.map((stats, i) => {
@@ -774,7 +814,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       this.metadataEditorColumn = this.labelOptions[Math.max(0, labelIndex)];
     }
     //Color by options.
-    const standardColorOption: ColorOption[] = [{name: 'No color map'}];
+    const standardColorOption: ColorOption[] = [{ name: 'No color map' }];
     const metadataColorOption: ColorOption[] = columnStats
       .filter((stats) => {
         return !stats.tooManyUniqueValues || stats.isNumeric;
@@ -804,8 +844,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
             `${len} ${len > range.length ? ' non-unique' : ''} ` + `colors`;
         } else {
           thresholds = [
-            {color: '#ffffdd', value: stats.min},
-            {color: '#1f2d86', value: stats.max},
+            { color: '#ffffdd', value: stats.min },
+            { color: '#1f2d86', value: stats.max },
           ];
           map = d3
             .scaleLinear<string, string>()
@@ -825,7 +865,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     if (metadataColorOption.length > 0) {
       // Add a separator line between built-in color maps
       // and those based on metadata columns.
-      standardColorOption.push({name: 'Metadata', isSeparator: true});
+      standardColorOption.push({ name: 'Metadata', isSeparator: true });
     }
     this.colorOptions = standardColorOption.concat(metadataColorOption);
   }
@@ -1047,7 +1087,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.projector.setProjection(projection);
   }
   clearCentroids(): void {
-    this.centroids = {xLeft: null, xRight: null, yUp: null, yDown: null};
+    this.centroids = { xLeft: null, xRight: null, yUp: null, yDown: null };
     this.allCentroid = null;
   }
   @observe('customSelectedSearchByMetadataOption')
@@ -1110,7 +1150,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   }
   private getCentroid(pattern: string, inRegexMode: boolean): CentroidResult {
     if (pattern == null || pattern === '') {
-      return {numMatches: 0};
+      return { numMatches: 0 };
     }
     // Search by the original dataset since we often want to filter and project
     // only the nearest neighbors of A onto B-C where B and C are not nearest
@@ -1122,7 +1162,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       this.customSelectedSearchByMetadataOption
     );
     let r = result[1];
-    return {centroid: vector.centroid(r, accessor), numMatches: r.length};
+    return { centroid: vector.centroid(r, accessor), numMatches: r.length };
   }
   getPcaSampledDimText() {
     return PCA_SAMPLE_DIM.toLocaleString();

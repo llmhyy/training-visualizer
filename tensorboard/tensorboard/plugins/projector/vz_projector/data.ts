@@ -13,9 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import numeric from 'numeric';
-import {UMAP} from 'umap-js';
+import { UMAP } from 'umap-js';
 
-import {TSNE} from './bh_tsne';
+import { TSNE } from './bh_tsne';
 import {
   DataProvider,
   EmbeddingInfo,
@@ -23,7 +23,7 @@ import {
   SpriteMetadata,
   TENSORS_MSG_ID
 } from './data-provider';
-import {CameraDef} from './scatterPlot';
+import { CameraDef } from './scatterPlot';
 import * as knn from './knn';
 import * as vector from './vector';
 import * as logging from './logging';
@@ -184,7 +184,7 @@ function getSequenceNextPointIndex(
 function retrieveIPAddress(callback: (ip: any) => void): void {
   const msgId = logging.setModalMessage('Fetching Server IP...');
   const xhr = new XMLHttpRequest();
-  xhr.open('GET',`localhost:5000/test`, true)
+  xhr.open('GET', `localhost:5000/test`, true)
   xhr.setRequestHeader('Content-type', 'application/json');
   xhr.setRequestHeader('Accept', 'application/json')
 
@@ -197,7 +197,7 @@ function retrieveIPAddress(callback: (ip: any) => void): void {
     callback(ip);
   };
   xhr.send();
-  }
+}
 /**
  * Dataset contains a DataPoints array that should be treated as immutable. This
  * acts as a working subset of the original data, with cached properties
@@ -242,7 +242,7 @@ export class DataSet {
   DVIEvaluation: {
     [iteration: number]: any;
   } = [];
-  DVIDataList:{
+  DVIDataList: {
     [iteration: number]: any;
   } = [];
   DVIAvailableIteration: Array<number> = [];
@@ -301,7 +301,7 @@ export class DataSet {
         continue;
       }
       // The current point is pointing to a new/unseen sequence.
-      let newSequence: Sequence = {pointIndices: []};
+      let newSequence: Sequence = { pointIndices: [] };
       indexToSequence[i] = newSequence;
       sequences.push(newSequence);
       let currentIndex = i;
@@ -401,7 +401,7 @@ export class DataSet {
         vectors = vector.projectRandom(vectors, PCA_SAMPLE_DIM);
       }
       const sampledVectors = vectors.slice(0, PCA_SAMPLE_SIZE);
-      const {dot, transpose, svd: numericSvd} = numeric;
+      const { dot, transpose, svd: numericSvd } = numeric;
       // numeric dynamically generates `numeric.div` and Closure compiler has
       // incorrectly compiles `numeric.div` property accessor. We use below
       // signature to prevent Closure from mangling and guessing.
@@ -457,14 +457,14 @@ export class DataSet {
     this.DVIfilterIndices = pointIndices;
   }
 
-  updateProjection(index){
+  updateProjection(index) {
     this.points = window.DVIDataList[index]
   }
 
   /** Runs DVI on the data. */
-  async projectDVI (
-      iteration: number,predicates:{[key:string]: any},
-      stepCallback: (iter: number|null, evaluation:any, newSelection: any[], filterIndices:number[], totalIter?: number) => void
+  async projectDVI(
+    iteration: number, predicates: { [key: string]: any },
+    stepCallback: (iter: number | null, evaluation: any, newSelection: any[], filterIndices: number[], totalIter?: number) => void
   ) {
     this.projections['tsne'] = true;
     function componentToHex(c: number) {
@@ -472,249 +472,251 @@ export class DataSet {
       return hex.length == 1 ? "0" + hex : hex;
     }
 
-    function rgbToHex(r:number, g:number, b:number) {
+    function rgbToHex(r: number, g: number, b: number) {
       return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
     }
 
 
-    if(this.DVIAvailableIteration.indexOf(iteration) == -1) {
+    if (this.DVIAvailableIteration.indexOf(iteration) == -1) {
 
       let headers = new Headers();
       headers.append('Content-Type', 'application/json');
       headers.append('Accept', 'application/json');
-      await fetch("standalone_projector_config.json", {method: 'GET'})
-          .then(response => response.json())
-          .then(data => {
-            const ip_address = data.DVIServerIP+":"+data.DVIServerPort;
-            this.DVIServer = ip_address;
+      await fetch("standalone_projector_config.json", { method: 'GET' })
+        .then(response => response.json())
+        .then(data => {
+          const ip_address = data.DVIServerIP + ":" + data.DVIServerPort;
+          this.DVIServer = ip_address;
 
 
-      fetch("http://"+this.DVIServer+"/updateProjection", {
-        method: 'POST',
-        body: JSON.stringify({"path": this.DVIsubjectModelPath,  "iteration":iteration,
-              "resolution":this.DVIResolution, "predicates":predicates}),
-        headers: headers,
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        const result = data.result;
-        const grid_index = data.grid_index;
-        const grid_color = data.grid_color;
+          fetch("http://" + this.DVIServer + "/updateProjection", {
+            method: 'POST',
+            body: JSON.stringify({
+              "path": this.DVIsubjectModelPath, "iteration": iteration,
+              "resolution": this.DVIResolution, "predicates": predicates
+            }),
+            headers: headers,
+            mode: 'cors'
+          }).then(response => response.json()).then(data => {
+            const result = data.result;
+            const grid_index = data.grid_index;
+            const grid_color = data.grid_color;
 
-        const label_color_list = data.label_color_list;
-        const label_list = data.label_list;
-        const prediction_list = data.prediction_list;
+            const label_color_list = data.label_color_list;
+            const label_list = data.label_list;
+            const prediction_list = data.prediction_list;
 
-        const background_point_number = grid_index.length;
-        console.log("grid_index type",typeof(grid_index))
-        const real_data_number = label_color_list.length;
-        this.tSNETotalIter = data.maximum_iteration;
+            const background_point_number = grid_index.length;
+            console.log("grid_index type", typeof (grid_index))
+            const real_data_number = label_color_list.length;
+            this.tSNETotalIter = data.maximum_iteration;
 
-        this.tSNEIteration = iteration;
-        this.DVIValidPointNumber[iteration] = real_data_number + background_point_number;
-        this.DVIAvailableIteration.push(iteration);
-        const current_length = this.points.length;
+            this.tSNEIteration = iteration;
+            this.DVIValidPointNumber[iteration] = real_data_number + background_point_number;
+            this.DVIAvailableIteration.push(iteration);
+            const current_length = this.points.length;
 
-        const training_data = data.training_data;
-        const testing_data = data.testing_data;
-        const new_selection = data.new_selection;
-        const noisy_data = data.noisy_data;
-        const original_label_list = data.original_label_list;
+            const training_data = data.training_data;
+            const testing_data = data.testing_data;
+            const new_selection = data.new_selection;
+            const noisy_data = data.noisy_data;
+            const original_label_list = data.original_label_list;
 
-        const evaluation = data.evaluation;
-        this.DVIEvaluation[iteration] = evaluation;
-        const inv_acc = data.inv_acc_list;
+            const evaluation = data.evaluation;
+            this.DVIEvaluation[iteration] = evaluation;
+            const inv_acc = data.inv_acc_list;
 
-        const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
-        this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
+            const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
+            this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
 
-        const filterIndices = data.selectedPoints;
+            const filterIndices = data.selectedPoints;
 
-        for (let i = 0; i < real_data_number + background_point_number - current_length; i++) {
-          const newDataPoint : DataPoint = {
-            metadata: {label: "background"},
-            index: current_length + i,
-            projections: {
-              'tsne-0': 0,
-              'tsne-1': 0,
-              'tsne-2': 0
-            },
-          };
-          this.points.push(newDataPoint);
-        }
-        for (let i = 0; i < this.points.length; i++) {
-          let dataPoint = this.points[i];
-          if(dataPoint.DVI_projections == undefined || dataPoint.DVI_color == undefined) {
-            dataPoint.DVI_projections = {};
-            dataPoint.DVI_color = {};
-          }
-          if(dataPoint.training_data == undefined || dataPoint.testing_data == undefined) {
-            dataPoint.training_data = {};
-            dataPoint.testing_data = {};
-          }
-          if(dataPoint.prediction == undefined) {
-            dataPoint.prediction = {};
-          }
-          if(dataPoint.new_selection == undefined) {
-            dataPoint.new_selection = {};
-          }
-          if(dataPoint.inv_acc == undefined) {
-            dataPoint.inv_acc = {};
-          }
-          if(dataPoint.uncertainty == undefined) {
-            dataPoint.uncertainty = {};
-          }
-          if(dataPoint.uncertainty_ranking == undefined) {
-            dataPoint.uncertainty_ranking = {};
-          }
-          if(dataPoint.diversity == undefined) {
-            dataPoint.diversity = {};
-          }
-          if(dataPoint.diversity_ranking == undefined) {
-            dataPoint.diversity_ranking = {};
-          }
-          if(dataPoint.tot == undefined) {
-            dataPoint.tot = {};
-          }
-          if(dataPoint.tot_ranking == undefined) {
-            dataPoint.tot_ranking = {};
-          }
-        }
+            for (let i = 0; i < real_data_number + background_point_number - current_length; i++) {
+              const newDataPoint: DataPoint = {
+                metadata: { label: "background" },
+                index: current_length + i,
+                projections: {
+                  'tsne-0': 0,
+                  'tsne-1': 0,
+                  'tsne-2': 0
+                },
+              };
+              this.points.push(newDataPoint);
+            }
+            for (let i = 0; i < this.points.length; i++) {
+              let dataPoint = this.points[i];
+              if (dataPoint.DVI_projections == undefined || dataPoint.DVI_color == undefined) {
+                dataPoint.DVI_projections = {};
+                dataPoint.DVI_color = {};
+              }
+              if (dataPoint.training_data == undefined || dataPoint.testing_data == undefined) {
+                dataPoint.training_data = {};
+                dataPoint.testing_data = {};
+              }
+              if (dataPoint.prediction == undefined) {
+                dataPoint.prediction = {};
+              }
+              if (dataPoint.new_selection == undefined) {
+                dataPoint.new_selection = {};
+              }
+              if (dataPoint.inv_acc == undefined) {
+                dataPoint.inv_acc = {};
+              }
+              if (dataPoint.uncertainty == undefined) {
+                dataPoint.uncertainty = {};
+              }
+              if (dataPoint.uncertainty_ranking == undefined) {
+                dataPoint.uncertainty_ranking = {};
+              }
+              if (dataPoint.diversity == undefined) {
+                dataPoint.diversity = {};
+              }
+              if (dataPoint.diversity_ranking == undefined) {
+                dataPoint.diversity_ranking = {};
+              }
+              if (dataPoint.tot == undefined) {
+                dataPoint.tot = {};
+              }
+              if (dataPoint.tot_ranking == undefined) {
+                dataPoint.tot_ranking = {};
+              }
+            }
 
-        for (let i = 0; i < real_data_number; i++) {
-          let dataPoint = this.points[i];
-          dataPoint.projections['tsne-0'] = result[i][0];
-          dataPoint.projections['tsne-1'] = result[i][1];
-          dataPoint.projections['tsne-2'] = 0;
-          dataPoint.color = rgbToHex(label_color_list[i][0], label_color_list[i][1], label_color_list[i][2]);
-          dataPoint.DVI_projections[iteration] = [result[i][0], result[i][1]];
-          dataPoint.DVI_color[iteration] = dataPoint.color;
-          dataPoint.training_data[iteration] = false;
-          dataPoint.testing_data[iteration] = false;
-          dataPoint.current_training = false;
-          dataPoint.current_testing = false;
-          dataPoint.metadata['label'] = label_list[i];
-          dataPoint.prediction[iteration] = prediction_list[i];
-          dataPoint.current_prediction = prediction_list[i];
-          dataPoint.inv_acc[iteration] = inv_acc[i];
-          dataPoint.current_inv_acc = inv_acc[i];
-          if(prediction_list[i] == label_list[i]) {
-            dataPoint.current_wrong_prediction = false;
-          } else {
-            dataPoint.current_wrong_prediction = true;
-          }
-          dataPoint.new_selection[iteration] = false;
-          dataPoint.current_new_selection = false;
-          dataPoint.original_label = original_label_list[i];
-          dataPoint.noisy = false;
-          if(is_uncertainty_diversity_tot_exist) {
-            dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
-            dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
-            dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
-            dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
-            dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
-            dataPoint.tot[iteration] = dataPoint.metadata['tot'];
-            dataPoint.uncertainty_ranking[iteration] =  data.uncertainty_diversity_tot.uncertainty_ranking[i];
-            dataPoint.current_uncertainty_ranking =  data.uncertainty_diversity_tot.uncertainty_ranking[i];
-            dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
-            dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
-            dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
-            dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
-          }
-        }
+            for (let i = 0; i < real_data_number; i++) {
+              let dataPoint = this.points[i];
+              dataPoint.projections['tsne-0'] = result[i][0];
+              dataPoint.projections['tsne-1'] = result[i][1];
+              dataPoint.projections['tsne-2'] = 0;
+              dataPoint.color = rgbToHex(label_color_list[i][0], label_color_list[i][1], label_color_list[i][2]);
+              dataPoint.DVI_projections[iteration] = [result[i][0], result[i][1]];
+              dataPoint.DVI_color[iteration] = dataPoint.color;
+              dataPoint.training_data[iteration] = false;
+              dataPoint.testing_data[iteration] = false;
+              dataPoint.current_training = false;
+              dataPoint.current_testing = false;
+              dataPoint.metadata['label'] = label_list[i];
+              dataPoint.prediction[iteration] = prediction_list[i];
+              dataPoint.current_prediction = prediction_list[i];
+              dataPoint.inv_acc[iteration] = inv_acc[i];
+              dataPoint.current_inv_acc = inv_acc[i];
+              if (prediction_list[i] == label_list[i]) {
+                dataPoint.current_wrong_prediction = false;
+              } else {
+                dataPoint.current_wrong_prediction = true;
+              }
+              dataPoint.new_selection[iteration] = false;
+              dataPoint.current_new_selection = false;
+              dataPoint.original_label = original_label_list[i];
+              dataPoint.noisy = false;
+              if (is_uncertainty_diversity_tot_exist) {
+                dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
+                dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
+                dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
+                dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
+                dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
+                dataPoint.tot[iteration] = dataPoint.metadata['tot'];
+                dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+                dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+                dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
+                dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
+                dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
+                dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+              }
+            }
 
-        for (let i = 0; i < background_point_number; i++) {
-          let dataPoint = this.points[i + real_data_number];
-          dataPoint.projections['tsne-0'] = grid_index[i][0];
-          dataPoint.projections['tsne-1'] = grid_index[i][1];
-          dataPoint.projections['tsne-2'] = 0;
-          dataPoint.color = rgbToHex(grid_color[i][0],   grid_color[i][1], grid_color[i][2]);
-          dataPoint.DVI_projections[iteration] = [grid_index[i][0], grid_index[i][1]];
-          dataPoint.DVI_color[iteration] = dataPoint.color;
-          dataPoint.training_data[iteration] = undefined;
-          dataPoint.testing_data[iteration] = undefined;
-          dataPoint.current_training = undefined;
-          dataPoint.current_testing = undefined;
-          dataPoint.prediction[iteration] = "background";
-          dataPoint.current_prediction = "background";
-          dataPoint.inv_acc[iteration] = 0;
-          dataPoint.current_inv_acc = 0;
-          dataPoint.current_new_selection = undefined;
-          dataPoint.new_selection[iteration] = undefined;
-          dataPoint.current_wrong_prediction = undefined;
-          dataPoint.original_label = "background";
-          dataPoint.noisy = undefined;
-          if(is_uncertainty_diversity_tot_exist) {
-            dataPoint.metadata['uncertainty'] = -1;
-            dataPoint.uncertainty[iteration] = -1;
-            dataPoint.metadata['diversity'] = -1;
-            dataPoint.diversity[iteration] = -1;
-            dataPoint.metadata['tot'] = -1;
-            dataPoint.tot[iteration] = -1;
-            dataPoint.uncertainty_ranking[iteration] = -1;
-            dataPoint.current_uncertainty_ranking =  -1;
-            dataPoint.diversity_ranking[iteration] = -1;
-            dataPoint.current_diversity_ranking = -1;
-            dataPoint.tot_ranking[iteration] = -1;
-            dataPoint.current_tot_ranking = -1;
-          }
-        }
+            for (let i = 0; i < background_point_number; i++) {
+              let dataPoint = this.points[i + real_data_number];
+              dataPoint.projections['tsne-0'] = grid_index[i][0];
+              dataPoint.projections['tsne-1'] = grid_index[i][1];
+              dataPoint.projections['tsne-2'] = 0;
+              dataPoint.color = rgbToHex(grid_color[i][0], grid_color[i][1], grid_color[i][2]);
+              dataPoint.DVI_projections[iteration] = [grid_index[i][0], grid_index[i][1]];
+              dataPoint.DVI_color[iteration] = dataPoint.color;
+              dataPoint.training_data[iteration] = undefined;
+              dataPoint.testing_data[iteration] = undefined;
+              dataPoint.current_training = undefined;
+              dataPoint.current_testing = undefined;
+              dataPoint.prediction[iteration] = "background";
+              dataPoint.current_prediction = "background";
+              dataPoint.inv_acc[iteration] = 0;
+              dataPoint.current_inv_acc = 0;
+              dataPoint.current_new_selection = undefined;
+              dataPoint.new_selection[iteration] = undefined;
+              dataPoint.current_wrong_prediction = undefined;
+              dataPoint.original_label = "background";
+              dataPoint.noisy = undefined;
+              if (is_uncertainty_diversity_tot_exist) {
+                dataPoint.metadata['uncertainty'] = -1;
+                dataPoint.uncertainty[iteration] = -1;
+                dataPoint.metadata['diversity'] = -1;
+                dataPoint.diversity[iteration] = -1;
+                dataPoint.metadata['tot'] = -1;
+                dataPoint.tot[iteration] = -1;
+                dataPoint.uncertainty_ranking[iteration] = -1;
+                dataPoint.current_uncertainty_ranking = -1;
+                dataPoint.diversity_ranking[iteration] = -1;
+                dataPoint.current_diversity_ranking = -1;
+                dataPoint.tot_ranking[iteration] = -1;
+                dataPoint.current_tot_ranking = -1;
+              }
+            }
 
-        for (let i = real_data_number + background_point_number; i < this.points.length; i++) {
-          let dataPoint = this.points[i];
-          dataPoint.projections = {};
-        }
+            for (let i = real_data_number + background_point_number; i < this.points.length; i++) {
+              let dataPoint = this.points[i];
+              dataPoint.projections = {};
+            }
 
-        for (let i = 0; i < training_data.length; i++) {
-          const dataIndex = training_data[i];
-          let dataPoint = this.points[dataIndex];
-          dataPoint.training_data[iteration] = true;
-          dataPoint.current_training = true;
-        }
+            for (let i = 0; i < training_data.length; i++) {
+              const dataIndex = training_data[i];
+              let dataPoint = this.points[dataIndex];
+              dataPoint.training_data[iteration] = true;
+              dataPoint.current_training = true;
+            }
 
-        for (let i = 0; i < testing_data.length; i++) {
-          const dataIndex = testing_data[i];
-          let dataPoint = this.points[dataIndex];
-          dataPoint.testing_data[iteration] = true;
-          dataPoint.current_testing = true;
-        }
+            for (let i = 0; i < testing_data.length; i++) {
+              const dataIndex = testing_data[i];
+              let dataPoint = this.points[dataIndex];
+              dataPoint.testing_data[iteration] = true;
+              dataPoint.current_testing = true;
+            }
 
-        for (let i = 0; i < new_selection.length; i++) {
-          const dataIndex = new_selection[i];
-          let dataPoint = this.points[dataIndex];
-          dataPoint.new_selection[iteration] = true;
-          dataPoint.current_new_selection = true;
-        }
+            for (let i = 0; i < new_selection.length; i++) {
+              const dataIndex = new_selection[i];
+              let dataPoint = this.points[dataIndex];
+              dataPoint.new_selection[iteration] = true;
+              dataPoint.current_new_selection = true;
+            }
 
-        for (let i = 0; i < noisy_data.length; i++) {
-          const dataIndex = noisy_data[i];
-          let dataPoint = this.points[dataIndex];
-          dataPoint.noisy = true;
-        }
+            for (let i = 0; i < noisy_data.length; i++) {
+              const dataIndex = noisy_data[i];
+              let dataPoint = this.points[dataIndex];
+              dataPoint.noisy = true;
+            }
 
-        // const matches = this.get_match();
-        //
-        // for (let i = 0; i < real_data_number; i++) {
-        //   let dataPoint = this.points[i];
-        //   if (indices.indexOf(i) == -1 && i < this.DVICurrentRealDataNumber) {
-        //     dataPoint.projections = {}
-        //   }
-        // }
+            // const matches = this.get_match();
+            //
+            // for (let i = 0; i < real_data_number; i++) {
+            //   let dataPoint = this.points[i];
+            //   if (indices.indexOf(i) == -1 && i < this.DVICurrentRealDataNumber) {
+            //     dataPoint.projections = {}
+            //   }
+            // }
 
-        this.DVICurrentRealDataNumber = real_data_number;
-        this.DVIRealDataNumber[iteration] = real_data_number;
-        this.DVIfilterIndices = [];
-        for(let i=0;i<real_data_number+background_point_number;i++){
-          this.DVIfilterIndices.push(i);
-        }
-        this.DVIDataList[iteration] = this.points
-        window.DVIDataList = this.DVIDataList
-        stepCallback(this.tSNEIteration, evaluation, new_selection, filterIndices, this.tSNETotalIter);
-    }).catch(error => {
-        console.log(error);
-        stepCallback(null, null, null, null, null);
-    });
-
+            this.DVICurrentRealDataNumber = real_data_number;
+            this.DVIRealDataNumber[iteration] = real_data_number;
+            this.DVIfilterIndices = [];
+            for (let i = 0; i < real_data_number + background_point_number; i++) {
+              this.DVIfilterIndices.push(i);
+            }
+            this.DVIDataList[iteration] = this.points
+            window.DVIDataList = this.DVIDataList
+            stepCallback(this.tSNEIteration, evaluation, new_selection, filterIndices, this.tSNETotalIter);
+          }).catch(error => {
+            console.log(error);
+            stepCallback(null, null, null, null, null);
           });
+
+        });
     } else {
       const validDataNumber = this.DVIValidPointNumber[iteration];
       const evaluation = this.DVIEvaluation[iteration];
@@ -731,20 +733,20 @@ export class DataSet {
         dataPoint.current_testing = dataPoint.testing_data[iteration];
         dataPoint.current_prediction = dataPoint.prediction[iteration];
         dataPoint.current_inv_acc = dataPoint.inv_acc[iteration];
-        if(dataPoint.current_prediction == dataPoint.metadata['label'] && dataPoint.metadata['label'] != "background") {
-            dataPoint.current_wrong_prediction = false;
+        if (dataPoint.current_prediction == dataPoint.metadata['label'] && dataPoint.metadata['label'] != "background") {
+          dataPoint.current_wrong_prediction = false;
+        } else {
+          if (dataPoint.metadata['label'] != "background") {
+            dataPoint.current_wrong_prediction = true;
           } else {
-            if(dataPoint.metadata['label'] != "background") {
-              dataPoint.current_wrong_prediction = true;
-            } else {
-              dataPoint.current_wrong_prediction = undefined;
-            }
-         }
+            dataPoint.current_wrong_prediction = undefined;
+          }
+        }
         dataPoint.current_new_selection = dataPoint.new_selection[iteration];
-        if(dataPoint.current_new_selection) {
+        if (dataPoint.current_new_selection) {
           newSelection.push(i);
         }
-        if(this.is_uncertainty_diversity_tot_exist[iteration]) {
+        if (this.is_uncertainty_diversity_tot_exist[iteration]) {
           dataPoint.metadata['uncertainty'] = dataPoint.uncertainty[iteration];
           dataPoint.metadata['diversity'] = dataPoint.diversity[iteration];
           dataPoint.metadata['tot'] = dataPoint.tot[iteration];
@@ -755,9 +757,9 @@ export class DataSet {
       }
       for (let i = validDataNumber; i < this.points.length; i++) {
         let dataPoint = this.points[i];
-          dataPoint.projections = {};
-          dataPoint.current_testing = false;
-          dataPoint.current_training = false;
+        dataPoint.projections = {};
+        dataPoint.current_testing = false;
+        dataPoint.current_training = false;
       }
       // const matches = this.get_match();
       // for (let i = 0; i < validDataNumber; i++) {
@@ -768,45 +770,302 @@ export class DataSet {
       // }
       this.DVICurrentRealDataNumber = this.DVIRealDataNumber[iteration];
       this.DVIfilterIndices = [];
-        for(let i=0;i<this.DVICurrentRealDataNumber+Math.pow(this.DVIResolution,2);i++){
-          this.DVIfilterIndices.push(i);
-        }
+      for (let i = 0; i < this.DVICurrentRealDataNumber + Math.pow(this.DVIResolution, 2); i++) {
+        this.DVIfilterIndices.push(i);
+      }
       let headers = new Headers();
       headers.append('Content-Type', 'application/json');
       headers.append('Accept', 'application/json');
       await fetch(`http://${this.DVIServer}/query`, {
-          method: 'POST',
-          body: JSON.stringify({"predicates": predicates, "content_path":this.DVIsubjectModelPath,
-          "iteration":iteration}),
-          headers: headers,
-          mode: 'cors'
-        }).then(response => response.json()).then(data => {
-          const indices = data.selectedPoints;
-          console.log("response",indices.length);
-          stepCallback(this.tSNEIteration, evaluation, newSelection, indices, this.tSNETotalIter);
+        method: 'POST',
+        body: JSON.stringify({
+          "predicates": predicates, "content_path": this.DVIsubjectModelPath,
+          "iteration": iteration
+        }),
+        headers: headers,
+        mode: 'cors'
+      }).then(response => response.json()).then(data => {
+        const indices = data.selectedPoints;
+        console.log("response", indices.length);
+        stepCallback(this.tSNEIteration, evaluation, newSelection, indices, this.tSNETotalIter);
       }).catch(error => {
-          logging.setErrorMessage('querying for indices');
-          stepCallback(null, null, null, null, null);
+        logging.setErrorMessage('querying for indices');
+        stepCallback(null, null, null, null, null);
       });
     }
   }
 
-  async getSpriteImage(id:any,stepCallback: (imgData: any) => void){
+  /** Runs DVI on the data. */
+  async reTrainByDVI(
+    iteration: number, newIndices: number[],
+    stepCallback: (iter: number | null, evaluation: any, newSelection: any[], filterIndices: number[], totalIter?: number) => void
+  ) {
+    this.projections['tsne'] = true;
+    function componentToHex(c: number) {
+      const hex = c.toString(16);
+      return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    function rgbToHex(r: number, g: number, b: number) {
+      return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+    }
+    let headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    await fetch("standalone_projector_config.json", { method: 'GET' })
+      .then(response => response.json())
+      .then(data => {
+        const ip_address = data.DVIServerIP + ":" + data.DVIServerPort;
+        this.DVIServer = ip_address;
+        fetch("http://" + this.DVIServer + "/al_train", {
+          method: 'POST',
+          body: JSON.stringify({
+            "iteration": iteration,
+            "newIndices": newIndices,
+            "content_path": this.DVIsubjectModelPath,
+          }),
+          headers: headers,
+          mode: 'cors'
+        }).then(response => response.json()).then(data => {
+          const result = data.result;
+          const grid_index = data.grid_index;
+          const grid_color = data.grid_color;
+
+          const label_color_list = data.label_color_list;
+          const label_list = data.label_list;
+          const prediction_list = data.prediction_list;
+
+          const background_point_number = grid_index.length;
+          console.log("grid_index type", typeof (grid_index))
+          const real_data_number = label_color_list.length;
+          this.tSNETotalIter = data.maximum_iteration;
+
+          this.tSNEIteration = iteration;
+          this.DVIValidPointNumber[iteration] = real_data_number + background_point_number;
+          this.DVIAvailableIteration.push(iteration);
+          const current_length = this.points.length;
+
+          const training_data = data.training_data;
+          const testing_data = data.testing_data;
+          const new_selection = data.new_selection;
+          const noisy_data = data.noisy_data;
+          const original_label_list = data.original_label_list;
+
+          const evaluation = data.evaluation;
+          this.DVIEvaluation[iteration] = evaluation;
+          const inv_acc = data.inv_acc_list;
+
+          const is_uncertainty_diversity_tot_exist = data.uncertainty_diversity_tot.is_exist;
+          this.is_uncertainty_diversity_tot_exist[iteration] = is_uncertainty_diversity_tot_exist;
+
+          const filterIndices = data.selectedPoints;
+
+          for (let i = 0; i < real_data_number + background_point_number - current_length; i++) {
+            const newDataPoint: DataPoint = {
+              metadata: { label: "background" },
+              index: current_length + i,
+              projections: {
+                'tsne-0': 0,
+                'tsne-1': 0,
+                'tsne-2': 0
+              },
+            };
+            this.points.push(newDataPoint);
+          }
+          for (let i = 0; i < this.points.length; i++) {
+            let dataPoint = this.points[i];
+            if (dataPoint.DVI_projections == undefined || dataPoint.DVI_color == undefined) {
+              dataPoint.DVI_projections = {};
+              dataPoint.DVI_color = {};
+            }
+            if (dataPoint.training_data == undefined || dataPoint.testing_data == undefined) {
+              dataPoint.training_data = {};
+              dataPoint.testing_data = {};
+            }
+            if (dataPoint.prediction == undefined) {
+              dataPoint.prediction = {};
+            }
+            if (dataPoint.new_selection == undefined) {
+              dataPoint.new_selection = {};
+            }
+            if (dataPoint.inv_acc == undefined) {
+              dataPoint.inv_acc = {};
+            }
+            if (dataPoint.uncertainty == undefined) {
+              dataPoint.uncertainty = {};
+            }
+            if (dataPoint.uncertainty_ranking == undefined) {
+              dataPoint.uncertainty_ranking = {};
+            }
+            if (dataPoint.diversity == undefined) {
+              dataPoint.diversity = {};
+            }
+            if (dataPoint.diversity_ranking == undefined) {
+              dataPoint.diversity_ranking = {};
+            }
+            if (dataPoint.tot == undefined) {
+              dataPoint.tot = {};
+            }
+            if (dataPoint.tot_ranking == undefined) {
+              dataPoint.tot_ranking = {};
+            }
+          }
+
+          for (let i = 0; i < real_data_number; i++) {
+            let dataPoint = this.points[i];
+            dataPoint.projections['tsne-0'] = result[i][0];
+            dataPoint.projections['tsne-1'] = result[i][1];
+            dataPoint.projections['tsne-2'] = 0;
+            dataPoint.color = rgbToHex(label_color_list[i][0], label_color_list[i][1], label_color_list[i][2]);
+            dataPoint.DVI_projections[iteration] = [result[i][0], result[i][1]];
+            dataPoint.DVI_color[iteration] = dataPoint.color;
+            dataPoint.training_data[iteration] = false;
+            dataPoint.testing_data[iteration] = false;
+            dataPoint.current_training = false;
+            dataPoint.current_testing = false;
+            dataPoint.metadata['label'] = label_list[i];
+            dataPoint.prediction[iteration] = prediction_list[i];
+            dataPoint.current_prediction = prediction_list[i];
+            dataPoint.inv_acc[iteration] = inv_acc[i];
+            dataPoint.current_inv_acc = inv_acc[i];
+            if (prediction_list[i] == label_list[i]) {
+              dataPoint.current_wrong_prediction = false;
+            } else {
+              dataPoint.current_wrong_prediction = true;
+            }
+            dataPoint.new_selection[iteration] = false;
+            dataPoint.current_new_selection = false;
+            dataPoint.original_label = original_label_list[i];
+            dataPoint.noisy = false;
+            if (is_uncertainty_diversity_tot_exist) {
+              dataPoint.metadata['uncertainty'] = data.uncertainty_diversity_tot.uncertainty[i];
+              dataPoint.uncertainty[iteration] = dataPoint.metadata['uncertainty'];
+              dataPoint.metadata['diversity'] = data.uncertainty_diversity_tot.diversity[i];
+              dataPoint.diversity[iteration] = dataPoint.metadata['diversity'];
+              dataPoint.metadata['tot'] = data.uncertainty_diversity_tot.tot[i];
+              dataPoint.tot[iteration] = dataPoint.metadata['tot'];
+              dataPoint.uncertainty_ranking[iteration] = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+              dataPoint.current_uncertainty_ranking = data.uncertainty_diversity_tot.uncertainty_ranking[i];
+              dataPoint.diversity_ranking[iteration] = data.uncertainty_diversity_tot.diversity_ranking[i];
+              dataPoint.current_diversity_ranking = data.uncertainty_diversity_tot.diversity_ranking[i];
+              dataPoint.tot_ranking[iteration] = data.uncertainty_diversity_tot.tot_ranking[i];
+              dataPoint.current_tot_ranking = data.uncertainty_diversity_tot.tot_ranking[i];
+            }
+          }
+
+          for (let i = 0; i < background_point_number; i++) {
+            let dataPoint = this.points[i + real_data_number];
+            dataPoint.projections['tsne-0'] = grid_index[i][0];
+            dataPoint.projections['tsne-1'] = grid_index[i][1];
+            dataPoint.projections['tsne-2'] = 0;
+            dataPoint.color = rgbToHex(grid_color[i][0], grid_color[i][1], grid_color[i][2]);
+            dataPoint.DVI_projections[iteration] = [grid_index[i][0], grid_index[i][1]];
+            dataPoint.DVI_color[iteration] = dataPoint.color;
+            dataPoint.training_data[iteration] = undefined;
+            dataPoint.testing_data[iteration] = undefined;
+            dataPoint.current_training = undefined;
+            dataPoint.current_testing = undefined;
+            dataPoint.prediction[iteration] = "background";
+            dataPoint.current_prediction = "background";
+            dataPoint.inv_acc[iteration] = 0;
+            dataPoint.current_inv_acc = 0;
+            dataPoint.current_new_selection = undefined;
+            dataPoint.new_selection[iteration] = undefined;
+            dataPoint.current_wrong_prediction = undefined;
+            dataPoint.original_label = "background";
+            dataPoint.noisy = undefined;
+            if (is_uncertainty_diversity_tot_exist) {
+              dataPoint.metadata['uncertainty'] = -1;
+              dataPoint.uncertainty[iteration] = -1;
+              dataPoint.metadata['diversity'] = -1;
+              dataPoint.diversity[iteration] = -1;
+              dataPoint.metadata['tot'] = -1;
+              dataPoint.tot[iteration] = -1;
+              dataPoint.uncertainty_ranking[iteration] = -1;
+              dataPoint.current_uncertainty_ranking = -1;
+              dataPoint.diversity_ranking[iteration] = -1;
+              dataPoint.current_diversity_ranking = -1;
+              dataPoint.tot_ranking[iteration] = -1;
+              dataPoint.current_tot_ranking = -1;
+            }
+          }
+
+          for (let i = real_data_number + background_point_number; i < this.points.length; i++) {
+            let dataPoint = this.points[i];
+            dataPoint.projections = {};
+          }
+
+          for (let i = 0; i < training_data.length; i++) {
+            const dataIndex = training_data[i];
+            let dataPoint = this.points[dataIndex];
+            dataPoint.training_data[iteration] = true;
+            dataPoint.current_training = true;
+          }
+
+          for (let i = 0; i < testing_data.length; i++) {
+            const dataIndex = testing_data[i];
+            let dataPoint = this.points[dataIndex];
+            dataPoint.testing_data[iteration] = true;
+            dataPoint.current_testing = true;
+          }
+
+          for (let i = 0; i < new_selection.length; i++) {
+            const dataIndex = new_selection[i];
+            let dataPoint = this.points[dataIndex];
+            dataPoint.new_selection[iteration] = true;
+            dataPoint.current_new_selection = true;
+          }
+
+          for (let i = 0; i < noisy_data.length; i++) {
+            const dataIndex = noisy_data[i];
+            let dataPoint = this.points[dataIndex];
+            dataPoint.noisy = true;
+          }
+
+          // const matches = this.get_match();
+          //
+          // for (let i = 0; i < real_data_number; i++) {
+          //   let dataPoint = this.points[i];
+          //   if (indices.indexOf(i) == -1 && i < this.DVICurrentRealDataNumber) {
+          //     dataPoint.projections = {}
+          //   }
+          // }
+
+          this.DVICurrentRealDataNumber = real_data_number;
+          this.DVIRealDataNumber[iteration] = real_data_number;
+          this.DVIfilterIndices = [];
+          for (let i = 0; i < real_data_number + background_point_number; i++) {
+            this.DVIfilterIndices.push(i);
+          }
+          this.DVIDataList[iteration] = this.points
+          window.DVIDataList = this.DVIDataList
+          stepCallback(this.tSNEIteration, evaluation, new_selection, filterIndices, this.tSNETotalIter);
+        }).catch(error => {
+          logging.setErrorMessage('querying for indices');
+          console.log(error);
+          stepCallback(null, null, null, null, null);
+        });
+
+      });
+
+  }
+
+  async getSpriteImage(id: any, stepCallback: (imgData: any) => void) {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     const msgId = logging.setModalMessage('Fetching sprite image...');
 
     await fetch(`http://${this.DVIServer}/sprite?index=${id}`, {
-        method: 'GET',
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        console.log("response",data);
-        logging.setModalMessage(null, msgId);
-       stepCallback(data);
+      method: 'GET',
+      mode: 'cors'
+    }).then(response => response.json()).then(data => {
+      console.log("response", data);
+      logging.setModalMessage(null, msgId);
+      stepCallback(data);
     }).catch(error => {
       logging.setModalMessage(null, msgId);
-      console.log("error",error);
+      console.log("error", error);
     });
   }
 
@@ -814,7 +1073,7 @@ export class DataSet {
     perplexity: number,
     learningRate: number,
     tsneDim: number,
-    stepCallback: (iter: number, dataset?:DataSet, totalIter?: number) => void
+    stepCallback: (iter: number, dataset?: DataSet, totalIter?: number) => void
   ) {/*
     //console.log('here3');
     this.hasTSNERun = true;
@@ -1010,45 +1269,45 @@ export class DataSet {
   async projectUmap(
     nComponents: number,
     nNeighbors: number,
-    stepCallback: (iter: number, bg:string) => void
+    stepCallback: (iter: number, bg: string) => void
   ) {
-       this.hasUmapRun = true;
-       this.umap = new UMAP({nComponents, nNeighbors});
-       let currentEpoch = 0;
-       const sampledIndices = this.shuffledDataIndices.slice(0, UMAP_SAMPLE_SIZE);
-       const sampledData = sampledIndices.map((i) => this.points[i]);
+    this.hasUmapRun = true;
+    this.umap = new UMAP({ nComponents, nNeighbors });
+    let currentEpoch = 0;
+    const sampledIndices = this.shuffledDataIndices.slice(0, UMAP_SAMPLE_SIZE);
+    const sampledData = sampledIndices.map((i) => this.points[i]);
 
-       let headers = new Headers();
-       headers.append('Content-Type', 'application/json');
-       headers.append('Accept', 'application/json');
+    let headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
 
-       const result_bg = await fetch("http://192.168.1.115:5000/visualize", {
-         method: 'POST',
-         body: JSON.stringify({"sampled_data": sampledData}),
-         headers: headers,
-         mode: 'cors'
-       }).then(response => response.json()).then(data => [data.result, data.bg]);
-       const result = result_bg[0];
-       const bg = 'data:image/png;base64,'+result_bg[1];
+    const result_bg = await fetch("http://192.168.1.115:5000/visualize", {
+      method: 'POST',
+      body: JSON.stringify({ "sampled_data": sampledData }),
+      headers: headers,
+      mode: 'cors'
+    }).then(response => response.json()).then(data => [data.result, data.bg]);
+    const result = result_bg[0];
+    const bg = 'data:image/png;base64,' + result_bg[1];
 
 
     return new Promise((resolve, reject) => {
       util.runAsyncTask(`Updating`, () => {
         sampledIndices.forEach((index, i) => {
-                  const dataPoint = this.points[index];
-                  dataPoint.projections['umap-0'] = result[i][0];
-                  dataPoint.projections['umap-1'] = result[i][1];
-                  if (nComponents === 3) {
-                    //dataPoint.projections['umap-2'] = result[i][2];
-                    dataPoint.projections['umap-2'] = 0;
-                  }
-                });
-                this.projections['umap'] = true;
-                logging.setModalMessage(null, UMAP_MSG_ID);
-                this.hasUmapRun = true;
-                stepCallback(currentEpoch, bg);
-                //@ts-ignore
-                resolve();
+          const dataPoint = this.points[index];
+          dataPoint.projections['umap-0'] = result[i][0];
+          dataPoint.projections['umap-1'] = result[i][1];
+          if (nComponents === 3) {
+            //dataPoint.projections['umap-2'] = result[i][2];
+            dataPoint.projections['umap-2'] = 0;
+          }
+        });
+        this.projections['umap'] = true;
+        logging.setModalMessage(null, UMAP_MSG_ID);
+        this.hasUmapRun = true;
+        stepCallback(currentEpoch, bg);
+        //@ts-ignore
+        resolve();
       });
     });
   };
@@ -1069,11 +1328,11 @@ export class DataSet {
       const result = await (knnGpuEnabled
         ? knn.findKNNGPUCosine(data, nNeighbors, (d) => d.vector)
         : knn.findKNN(
-            data,
-            nNeighbors,
-            (d) => d.vector,
-            (a, b) => vector.cosDistNorm(a, b)
-          ));
+          data,
+          nNeighbors,
+          (d) => d.vector,
+          (a, b) => vector.cosDistNorm(a, b)
+        ));
       this.nearest = result;
       return Promise.resolve(result);
     }
@@ -1139,8 +1398,8 @@ export class DataSet {
         // error.
         logging.setErrorMessage(
           errorMessage +
-            ' Single column metadata should not have a header ' +
-            'row.',
+          ' Single column metadata should not have a header ' +
+          'row.',
           'merging metadata'
         );
         return false;
@@ -1153,8 +1412,8 @@ export class DataSet {
         // means there is a missing metadata header.
         logging.setErrorMessage(
           errorMessage +
-            ' Multi-column metadata should have a header ' +
-            'row with column labels.',
+          ' Multi-column metadata should have a header ' +
+          'row with column labels.',
           'merging metadata'
         );
         return false;
@@ -1195,12 +1454,12 @@ export class DataSet {
    * Search the dataset based on a metadata field and save all the predicates.
    */
   query(query: string, inRegexMode: boolean, fieldName: string): [any, number[]] {
-    console.log('from,to',query)
+    console.log('from,to', query)
     let predicate = util.getSearchPredicate(query, inRegexMode, fieldName);
     let matches: number[] = [];
     this.points.forEach((point, id) => {
       let result = true;
-      for(let i = 0; i < this.DVIPredicates.length; i++) {
+      for (let i = 0; i < this.DVIPredicates.length; i++) {
         const current_predicate = this.DVIPredicates[i];
         if (!current_predicate(point)) {
           result = false;
@@ -1217,7 +1476,7 @@ export class DataSet {
     let matches: number[] = [];
     this.points.forEach((point, id) => {
       let result = true;
-      for(let i = 0; i < this.DVIPredicates.length; i++) {
+      for (let i = 0; i < this.DVIPredicates.length; i++) {
         const current_predicate = this.DVIPredicates[i];
         if (!current_predicate(point)) {
           result = false;
@@ -1238,7 +1497,7 @@ export class Projection {
     public projectionComponents: ProjectionComponents3D,
     public dimensionality: number,
     public dataSet: DataSet
-  ) {}
+  ) { }
 }
 export interface ColorOption {
   name: string;

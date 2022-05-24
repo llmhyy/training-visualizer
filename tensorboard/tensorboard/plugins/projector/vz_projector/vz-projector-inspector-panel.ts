@@ -105,6 +105,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
 
   public scatterPlot: ScatterPlot;
   private projectorEventContext: ProjectorEventContext;
+  private projectionsPanel: any;
   private displayContexts: string[];
   private projector: any; // Projector; type omitted b/c LegacyElement
   private selectedPointIndices: number[];
@@ -114,6 +115,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private queryByStrategtBtn: HTMLButtonElement;
   private boundingSelectionBtn :HTMLButtonElement;
   private isAlSelecting: boolean;
+  private trainBySelBtn: HTMLButtonElement;
 
   private resetFilterButton: HTMLButtonElement;
   private setFilterButton: HTMLButtonElement;
@@ -170,6 +172,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.sentButton = this.$$('.sent') as HTMLButtonElement;
     this.showButton = this.$$('.show') as HTMLButtonElement;
     this.selectinMessage = this.$$('.boundingBoxSelection') as HTMLElement;
+    this.trainBySelBtn = this.$$('.train-by-selection') as HTMLButtonElement
+    this.projectionsPanel = this.$['projections-panel'] as any; // ProjectionsPanel
 
 
     this.limitMessage = this.$$('.limit-msg') as HTMLDivElement;
@@ -584,6 +588,12 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
           }
         }
       );
+    }
+
+    this.trainBySelBtn.onclick = () => {
+      console.log(this.projector.iteration,this.selectedPointIndices)
+      this.projector.retrainBySelections(this.projector.iteration,this.selectedPointIndices)
+    //  this.projectionsPanel.reTrainBySel(this.projector.iteration,this.selectedPointIndices)
     }
     this.distFunc = vector.cosDist;
     const eucDist = this.$$('.distance a.euclidean') as HTMLLinkElement;

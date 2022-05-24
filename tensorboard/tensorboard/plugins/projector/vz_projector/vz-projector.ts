@@ -889,6 +889,11 @@ class Projector
     this.notifySelectionChanged(state.selectedPoints);
   }
 
+  retrainBySelections(iteration:number,newSel:number[]){
+    this.projectionsPanel.retrainBySelections(iteration,newSel)
+  }
+
+
   /**
    * query for indices in inspector panel
    */
@@ -961,7 +966,8 @@ class Projector
       body: JSON.stringify({
         "iteration": iteration,
         "strategy":strategy,
-        "budget":budget
+        "budget":budget,
+        "content_path": this.dataSet.DVIsubjectModelPath,
       }),
       headers: headers,
       mode: 'cors'
