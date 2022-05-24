@@ -129,7 +129,7 @@ registerStyleDomModule({
       font-size: 14px;
       margin-top: 20px;
       margin-bottom: 5px;
-      text-transform: uppercase;
+      // text-transform: uppercase;
     }
 
     .ink-panel-header h3 {
@@ -137,7 +137,7 @@ registerStyleDomModule({
       font-size: 14px;
       margin: 0;
       padding: 0 24px;
-      text-transform: uppercase;
+      // text-transform: uppercase;
     }
 
     /* - Tabs */
@@ -156,7 +156,7 @@ registerStyleDomModule({
       line-height: 49px;
       padding: 0 12px;
       text-align: center;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     .ink-tab-group .projection-tab:hover {

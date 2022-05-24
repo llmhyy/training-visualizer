@@ -17,7 +17,8 @@ declare global {
     hiddenBackground: boolean | false,
     DVIDataList: any,
     lineGeomertryList:any,
-    iteration:number
+    iteration:number,
+    isFilter: boolean | false
   }
 }
 
@@ -630,7 +631,7 @@ class Projector
     this.notifyHoverOverPoint(hoverIndex);
     this.setMouseMode(MouseMode.CAMERA_AND_CLICK_SELECT);
   }
-  private setMouseMode(mouseMode: MouseMode) {
+  setMouseMode(mouseMode: MouseMode) {
     let selectModeButton = this.$$('#selectMode');
     (selectModeButton as any).active = mouseMode === MouseMode.AREA_SELECT;
     this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(mouseMode);
@@ -946,6 +947,31 @@ class Projector
       this.inspectorPanel.filteredPoints = indices;
     }).catch(error => {
       logging.setErrorMessage('querying for indices');
+    });
+  }
+
+  queryByAL(iteration: number,strategy:string,budget:number,
+    callback: (indices: any) => void) {
+    const msgId = logging.setModalMessage('Querying...');
+    let headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    fetch(`http://${this.DVIServer}/al_query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        "iteration": iteration,
+        "strategy":strategy,
+        "budget":budget
+      }),
+      headers: headers,
+      mode: 'cors'
+    }).then(response => response.json()).then(data => {
+      const indices = data.selectedPoints;
+      logging.setModalMessage(null, msgId);
+      callback(indices);
+    }).catch(error => {
+      logging.setErrorMessage('querying for indices');
+      callback(null);
     });
   }
   saveDVISelection(indices: number[], callback: (msg: string) => void) {

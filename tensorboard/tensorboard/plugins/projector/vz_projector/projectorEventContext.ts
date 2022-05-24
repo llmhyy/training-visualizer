@@ -43,7 +43,9 @@ export interface ProjectorEventContext {
 
   setDynamicNoisy(epochFrom: number, epochTo: number);
   setDynamicStop();
+
   renderInTraceLine(inTrace: boolean, from: number, to: number);
+  setMouseMode(mode:any);
   /** Registers a callback to be invoked when the projection changes. */
   registerProjectionChangedListener(listener: ProjectionChangedListener);
   /** Notify listeners that a reprojection occurred. */

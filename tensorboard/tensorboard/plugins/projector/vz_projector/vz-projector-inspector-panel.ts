@@ -23,7 +23,8 @@ import { template } from './vz-projector-inspector-panel.html';
 import './vz-projector-input';
 import { dist2color, normalizeDist } from './projectorScatterPlotAdapter';
 import { ProjectorEventContext } from './projectorEventContext';
-import { ScatterPlot } from './scatterPlot';
+import { ScatterPlot,MouseMode } from './scatterPlot';
+
 
 import { ProjectorScatterPlotAdapter } from './projectorScatterPlotAdapter';
 
@@ -45,6 +46,12 @@ type SpriteMetadata = {
 @customElement('vz-projector-inspector-panel')
 class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   static readonly template = template;
+  
+  @property({type : String})
+  selectedStratergy:string;
+
+  @property({ type: Number})
+  budget: number
 
   @property({ type: String })
   selectedMetadataField: string;
@@ -103,6 +110,11 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private selectedPointIndices: number[];
   private neighborsOfFirstPoint: knn.NearestEntry[];
   private searchBox: any; // ProjectorInput; type omitted b/c LegacyElement
+
+  private queryByStrategtBtn: HTMLButtonElement;
+  private boundingSelectionBtn :HTMLButtonElement;
+  private isAlSelecting: boolean;
+
   private resetFilterButton: HTMLButtonElement;
   private setFilterButton: HTMLButtonElement;
   private clearSelectionButton: HTMLButtonElement;
@@ -126,12 +138,23 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private searchInRegexMode: boolean;
   private filterIndices: number[];
   private searchFields: string[];
+  private statergyList: string[];
   private boundingBoxSelection: number[];
   private currentBoundingBoxSelection: number[];
   private projectorScatterPlotAdapter: ProjectorScatterPlotAdapter;
 
+
+  private currentFilterType: string
+
   ready() {
     super.ready();
+
+    this.isAlSelecting = false
+
+    this.currentFilterType = 'normal'
+
+    this.queryByStrategtBtn = this.$$('.query-by-stratergy') as HTMLButtonElement;
+    this.boundingSelectionBtn = this.$$('.bounding-selection') as HTMLButtonElement;
 
     this.resetFilterButton = this.$$('.reset-filter') as HTMLButtonElement;
     this.setFilterButton = this.$$('.set-filter') as HTMLButtonElement;
@@ -165,6 +188,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.epochFrom = 1
     this.epochTo = 1
     this.showTrace = false
+
+    this.budget = 1000
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;
@@ -175,6 +200,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     );
     // TODO change them based on metadata fields
     this.searchFields = ["type", "label", "new_selection"]
+    this.statergyList = ["random", "coreset", 'kmeans', "kmeans"]
     // TODO read real points length from dataSet
     for (let i = 0; i < 60000; i++) {
       this.filterIndices.push(i);
@@ -260,10 +286,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
 
   @observe('showTrace')
   _refreshScatterplot() {
-    console.log('trace',this.showTrace)
-    if(this.showTrace){
+    console.log('trace', this.showTrace)
+    if (this.showTrace) {
       this.projectorEventContext?.renderInTraceLine(true, this.epochFrom, this.epochTo)
-    }else{
+    } else {
       this.projectorEventContext?.renderInTraceLine(false, this.epochFrom, this.epochTo)
     }
   }
@@ -505,7 +531,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private updateFilterButtons(numPoints: number) {
     if (numPoints) {
       this.setFilterButton.innerText = `Filter ${numPoints} points`;
-      if(numPoints > 1){
+      if (numPoints > 1) {
         this.setFilterButton.disabled = null;
       }
       this.clearSelectionButton.disabled = null;
@@ -516,6 +542,49 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     }
   }
   private setupUI(projector: any) {
+
+    const self = this;
+    const inkTabs = this.root.querySelectorAll('.ink-tab');
+    for (let i = 0; i < inkTabs.length; i++) {
+      inkTabs[i].addEventListener('click', function () {
+        let id = this.getAttribute('data-tab');
+        self.showTab(id);
+      });
+    }
+    self.showTab('normal');
+
+    this.boundingSelectionBtn.onclick = (e:any)=>{
+
+      this.isAlSelecting = !this.isAlSelecting
+      if(this.isAlSelecting){
+        this.boundingSelectionBtn.classList.add('actived')
+        this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
+        // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
+      }else{
+        this.boundingSelectionBtn.classList.remove('actived')
+        this.projectorEventContext.setMouseMode(MouseMode.CAMERA_AND_CLICK_SELECT);
+      }
+    }
+
+    this.queryByStrategtBtn.onclick = () => {
+      projector.queryByAL(
+        this.projector.iteration,
+        this.selectedStratergy,
+        Number(this.budget),
+        (indices: any) => {
+          if (indices != null) {
+            this.queryIndices = indices;
+            if (this.queryIndices.length == 0) {
+              this.searchBox.message = '0 matches.';
+            } else {
+              this.searchBox.message = `${this.queryIndices.length} matches.`;
+            }
+            // console.log('this.queryIndices',this.queryIndices)
+            this.projectorEventContext.notifySelectionChanged(this.queryIndices);
+          }
+        }
+      );
+    }
     this.distFunc = vector.cosDist;
     const eucDist = this.$$('.distance a.euclidean') as HTMLLinkElement;
     eucDist.onclick = () => {
@@ -608,18 +677,20 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     }
 
     this.setFilterButton.onclick = () => {
-      // var indices = this.selectedPointIndices.concat(
-      //   this.neighborsOfFirstPoint.map((n) => n.index)
-      // );
-    
+      window.isFilter = true
+      var indices = this.selectedPointIndices.concat(
+        this.neighborsOfFirstPoint.map((n) => n.index)
+      );
+
       this.currentPredicate[this.selectedMetadataField] = this.searchPredicate;
       this.filterIndices = this.selectedPointIndices.sort()
-      console.log(this.filterIndices,this.selectedPointIndices)
-      projector.filterDataset(this.filterIndices,true);
+      console.log(indices, this.selectedPointIndices)
+      projector.filterDataset(indices, true);
       this.enableResetFilterButton(true);
       this.updateFilterButtons(this.filterIndices.length);
     };
     this.resetFilterButton.onclick = () => {
+      window.isFilter = false
       this.queryIndices = [];
       this.currentPredicate = {};
       this.filterIndices = [];
@@ -685,14 +756,43 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.selectinMessage.innerText = "0 seleted.";
     }
     this.sentButton.onclick = () => {
-      this.projector.saveDVISelection(this.boundingBoxSelection, (msg: string) => {
-        this.selectinMessage.innerText = msg;
-        logging.setWarnMessage(msg, null);
-      });
+      console.log(this.selectedPointIndices,this.boundingBoxSelection)
+      // this.projector.saveDVISelection(this.boundingBoxSelection, (msg: string) => {
+      //   this.selectinMessage.innerText = msg;
+      //   logging.setWarnMessage(msg, null);
+      // });
     }
     this.showButton.onclick = () => {
       this.projectorEventContext.notifySelectionChanged(this.boundingBoxSelection, true);
     }
+  }
+  public showTab(id: string) {
+    this.currentFilterType = id;
+    const tab = this.$$('.ink-tab[data-tab="' + id + '"]') as HTMLElement;
+    const allTabs = this.root.querySelectorAll('.ink-tab');
+    for (let i = 0; i < allTabs.length; i++) {
+      util.classed(allTabs[i] as HTMLElement, 'active', false);
+    }
+    util.classed(tab, 'active', true);
+    const allTabContent = this.root.querySelectorAll('.ink-panel-content');
+    for (let i = 0; i < allTabContent.length; i++) {
+      util.classed(allTabContent[i] as HTMLElement, 'active', false);
+    }
+    util.classed(
+      this.$$('.ink-panel-content[data-panel="' + id + '"]') as HTMLElement,
+      'active',
+      true
+    );
+    // guard for unit tests, where polymer isn't attached and $ doesn't exist.
+    if (this.$ != null) {
+      const main = this.$['main'];
+      // In order for the projections panel to animate its height, we need to
+      // set it explicitly.
+      requestAnimationFrame(() => {
+        this.style.height = main?.clientHeight + 'px';
+      });
+    }
+    console.log(id);
   }
   updateBoundingBoxSelection(indices: number[]) {
     this.currentBoundingBoxSelection = indices;

@@ -300,7 +300,6 @@ export class ProjectorScatterPlotAdapter {
       this.getSpriteImageMode(),
       this.renderInTriangle,
       this.renderInTraceLine,
-      isFilter
     );
     const pointScaleFactors = this.generatePointScaleFactorArray(
       dataSet,
@@ -337,6 +336,7 @@ export class ProjectorScatterPlotAdapter {
   render() {
     this.scatterPlot.render();
   }
+
   generatePointPositionArray(
     ds: DataSet,
     projectionComponents: ProjectionComponents3D
@@ -676,7 +676,6 @@ export class ProjectorScatterPlotAdapter {
     spriteImageMode: boolean,
     renderInTriangle: boolean,
     renderInTraceLine: boolean,
-    isFilter: boolean
   ): Float32Array {
     if (ds == null) {
       return new Float32Array(0);
@@ -696,12 +695,12 @@ export class ProjectorScatterPlotAdapter {
       unselectedColor = SPRITE_IMAGE_COLOR_UNSELECTED;
       noSelectionColor = SPRITE_IMAGE_COLOR_NO_SELECTION;
     }
-    console.log('isFilter', isFilter)
+    console.log('isFilter', window.isFilter)
     // Give all points the unselected color.
     {
       const n = ds.points.length;
       let dst = 0;
-      if (selectedPointCount > 0 && !renderInTriangle && !isFilter) {
+      if (selectedPointCount > 0 && !renderInTriangle && !window.isFilter) {
         let c = new THREE.Color(unselectedColor);
         for (let i = 0; i < n; ++i) {
           colors[dst++] = c.r;
@@ -780,16 +779,34 @@ export class ProjectorScatterPlotAdapter {
         }
       }
     }
-    if (isFilter) {
-      const n = ds.points.length;
-      console.log('isisisisisiissisi')
-      for (let i = 0; i < n; ++i) {
-        const c = new THREE.Color(POINT_COLOR_SELECTED);
-        let dst = i * 3
+    if (window.isFilter) {
+      let dst = 0;
+      const c = new THREE.Color(POINT_COLOR_SELECTED);
+      const c_n = new THREE.Color(unselectedColor);
+      const c_w = new THREE.Color(0xffffff);
+      for (let i = 0; i < ds.points.length; ++i) {
+        const point = ds.points[i];
         colors[dst++] = c.r;
         colors[dst++] = c.g;
         colors[dst++] = c.b;
+        if (point.metadata[this.labelPointAccessor]) {
+          let hoverText = point.metadata[this.labelPointAccessor].toString();
+          if (hoverText == 'background') {
+            if (window.hiddenBackground) {
+              let dst = i * 3
+              colors[dst++] = c_w.r;
+              colors[dst++] = c_w.g;
+              colors[dst++] = c_w.b;
+            } else {
+              let dst = i * 3
+              colors[dst++] = c_n.r;
+              colors[dst++] = c_n.g;
+              colors[dst++] = c_n.b;
+            }
+          }
+        }
       }
+      // return colors
     }
     // Color the hover point.
     if (hoverPointIndex != null
