@@ -606,7 +606,7 @@ export class DataSet {
               }
               dataPoint.new_selection[iteration] = false;
               dataPoint.current_new_selection = false;
-              if(original_label_list){
+              if (original_label_list) {
                 dataPoint.original_label = original_label_list[i];
               }
 
@@ -830,7 +830,7 @@ export class DataSet {
           headers: headers,
           mode: 'cors'
         }).then(response => response.json()).then(data => {
-          iteration ++ 
+          iteration++
           const result = data.result;
           const grid_index = data.grid_index;
           const grid_color = data.grid_color;
@@ -939,7 +939,7 @@ export class DataSet {
             }
             dataPoint.new_selection[iteration] = false;
             dataPoint.current_new_selection = false;
-            if(original_label_list){
+            if (original_label_list) {
               dataPoint.original_label = original_label_list[i];
             }
             dataPoint.noisy = false;
@@ -1062,7 +1062,7 @@ export class DataSet {
     headers.append('Accept', 'application/json');
     const msgId = logging.setModalMessage('Fetching sprite image...');
 
-    await fetch(`http://${this.DVIServer}/sprite?index=${id}`, {
+    await fetch(`http://${this.DVIServer}/sprite?index=${id}&path=${this.DVIsubjectModelPath}`, {
       method: 'GET',
       mode: 'cors'
     }).then(response => response.json()).then(data => {
