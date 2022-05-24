@@ -13,9 +13,13 @@ import base64
 import os
 import sys
 import json
+import time
 import torch
 import pandas as pd
 import numpy as np
+
+from torch.utils.data import DataLoader
+from torch.utils.data import WeightedRandomSampler
 
 from umap.umap_ import find_ab_params
 from sqlalchemy import create_engine, text
@@ -30,7 +34,12 @@ from singleVis.eval.evaluator import Evaluator
 from singleVis.trainer import SingleVisTrainer
 from singleVis.losses import ReconstructionLoss, UmapLoss, SingleVisLoss
 from singleVis.visualizer import visualizer
+from singleVis.custom_weighted_random_sampler import CustomWeightedRandomSampler
+from singleVis.edge_dataset import DataHandler
+from singleVis.eval.evaluator import Evaluator
+from singleVis.spatial_edge_constructor import SingleEpochSpatialEdgeConstructor
 from BackendAdapter import TimeVisBackend
+from utils import *
 
 
 # flask for API server
@@ -39,378 +48,56 @@ cors = CORS(app, supports_credentials=True)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 
-@app.route('/load', methods=["POST", "GET"])
-@cross_origin()
-def load():
-    res = request.get_json()
-    CONTENT_PATH = os.path.normpath(res['path'])
-    sys.path.append(CONTENT_PATH)
-
-    # load hyperparameters
-    config_file = os.path.join(CONTENT_PATH, "config.json")
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-    except:
-        raise NameError("config file not exists...")
-
-    CLASSES = config["CLASSES"]
-    DATASET = config["DATASET"]
-    LAMBDA = config["TRAINING"]["LAMBDA"]
-    EPOCH_START = config["EPOCH_START"]
-    EPOCH_END = config["EPOCH_END"]
-    EPOCH_PERIOD = config["EPOCH_PERIOD"]
-    SUBJECT_MODEL_NAME = config["TRAINING"]["SUBJECT_MODEL_NAME"]
-    VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
-    RESOLUTION = config["VISUALIZATION"]["RESOLUTION"]
-
-
-    # define hyperparameters
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    import Model.model as subject_model
-    try:
-        net = eval("subject_model.{}()".format(SUBJECT_MODEL_NAME))
-    except:
-        raise NameError("No subject model found in model.py...")
-
-    data_provider = DataProvider(CONTENT_PATH, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, verbose=1)
-    model = SingleVisualizationModel(input_dims=512, output_dims=2, units=256)
-    negative_sample_rate = 5
-    min_dist = .1
-    _a, _b = find_ab_params(1.0, min_dist)
-    umap_loss_fn = UmapLoss(negative_sample_rate, DEVICE, _a=_a, _b=_b, repulsion_strength=1.0)
-    recon_loss_fn = ReconstructionLoss(beta=1.0)
-    criterion = SingleVisLoss(umap_loss_fn, recon_loss_fn, lambd=LAMBDA)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=.01, weight_decay=1e-5)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=.1)
-
-    trainer = SingleVisTrainer(model, criterion=criterion, optimizer=optimizer, lr_scheduler=lr_scheduler, edge_loader=None, DEVICE=DEVICE)
-    trainer.load(file_path=os.path.join(data_provider.model_path,"{}".format(VIS_MODEL_NAME)))
-    trainer.model.eval()
-
-    evaluator = Evaluator(data_provider, trainer)
-    timevis = TimeVisBackend(data_provider, trainer, evaluator)
-
-
-    # sql_engine       = create_engine('mysql+pymysql://xg:password@localhost/dviDB', pool_recycle=3600)
-    # db_connection    = sql_engine.connect()
-
-    # # Search the following tables in MYSQL database and drop them if they exist
-    # sql_engine.execute(text('DROP TABLE IF EXISTS SubjectModel;'))
-    # sql_engine.execute(text('DROP TABLE IF EXISTS VisModel;'))
-    # sql_engine.execute(text('DROP TABLE IF EXISTS Sample;'))
-    # sql_engine.execute(text('DROP TABLE IF EXISTS NoisySample;'))
-    # sql_engine.execute(text('DROP TABLE IF EXISTS AlSample;'))
-    # sql_engine.execute(text('DROP TABLE IF EXISTS PredSample;'))
-
-    # # Create the SubjectModel table in MYSQL database and insert the data
-    # table_subject_model = "SubjectModel"
-    # data_subject_model = timevis.subject_model_table()
-    # data_subject_model.to_sql(table_subject_model, db_connection, if_exists='fail');
-
-    # # Create the VisModel table in MYSQL database and insert the data
-    # table_vis_model = "VisModel"
-    # data_vis_model = timevis.vis_model_table()
-    # data_vis_model.to_sql(table_vis_model, db_connection, if_exists='fail');
-
-    # # Create the Sample table in MYSQL database and insert the data
-    # table_sample = "Sample"
-    # data_sample = timevis.sample_table()
-    # data_sample.to_sql(table_sample, db_connection, if_exists='fail');
-
-    # # For nosiy or active learning data, currently not tested yet
-    # if "noisy" in CONTENT_PATH:     
-    #     table_noisy_sample = "NoisySample"
-    #     data_noisy_sample = timevis.sample_table_noisy()
-    #     data_noisy_sample.to_sql(table_noisy_sample, db_connection, if_exists='fail');
-    # elif "active" in CONTENT_PATH:
-    #     table_al_sample = "AlSample"
-    #     data_al_sample = timevis.sample_table_AL()
-    #     data_al_sample.to_sql(table_al_sample, db_connection, if_exists='fail');
-    
-    # # Ablation starts here
-    # # Store prediction, deltaboundary true/false for all samples in all epochs in PredSample table
-    # all_prediction_list = []
-    # all_deltab_list = []
-    # all_epochs_list = []
-    # all_idx_list = []
-    # for iteration in range(data_provider.s, data_provider.e+1, data_provider.p):
-    #     print("iteration", iteration)
-    #     train_data = data_provider.train_representation(iteration)
-    #     test_data = data_provider.test_representation(iteration)
-    #     all_data = np.concatenate((train_data, test_data), axis=0)
-
-    #     prediction = data_provider.get_pred(iteration, all_data).argmax(-1)
-    #     deltab = data_provider.is_deltaB(iteration, all_data)
-
-    #     count = 0
-    #     for idx,_ in enumerate(prediction):
-    #         all_prediction_list.append(prediction[idx])
-    #         all_deltab_list.append(deltab[idx])
-    #         all_epochs_list.append(iteration)
-    #         all_idx_list.append(count)
-    #         count += 1
-
-    # data_pred_sample = pd.DataFrame(list(zip(all_idx_list, all_epochs_list, all_prediction_list, all_deltab_list)),
-    #            columns =['idx', 'epoch', 'pred', 'deltab'])
-    # table_pred_sample = "PredSample"
-    # data_pred_sample.to_sql(table_pred_sample, db_connection, if_exists='fail')
-
-    # db_connection.close()
-
-    # !TODO have not finish loading all the points
-
-
 @app.route('/updateProjection', methods=["POST", "GET"])
 @cross_origin()
 def update_projection():
     res = request.get_json()
     CONTENT_PATH = os.path.normpath(res['path'])
-    iteration = int(res['iteration'])
+    EPOCH = int(res['iteration'])
     predicates = res["predicates"]
+
     sys.path.append(CONTENT_PATH)
+    timevis = initialize_backend(CONTENT_PATH)
 
-    # load hyperparameters
-    config_file = os.path.join(CONTENT_PATH, "config.json")
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-    except:
-        raise NameError("config file not exists...")
-
-    CLASSES = np.array(config["CLASSES"])
-    DATASET = config["DATASET"]
-    LAMBDA = config["TRAINING"]["LAMBDA"]
-    EPOCH_START = config["EPOCH_START"]
-    EPOCH_END = config["EPOCH_END"]
-    EPOCH_PERIOD = config["EPOCH_PERIOD"]
-    SUBJECT_MODEL_NAME = config["TRAINING"]["SUBJECT_MODEL_NAME"]
-    VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
-    RESOLUTION = config["VISUALIZATION"]["RESOLUTION"]
-    HIDDEN_LAYER = config["TRAINING"]["HIDDEN_LAYER"]
-    EPOCH = EPOCH_START + (iteration - 1)* EPOCH_PERIOD
-
-    # define hyperparameters
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    import Model.model as subject_model
-    try:
-        net = eval("subject_model.{}()".format(SUBJECT_MODEL_NAME))
-    except:
-        raise NameError("No subject model found in model.py...")
-
-    data_provider = DataProvider(CONTENT_PATH, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, verbose=1)
-    model = SingleVisualizationModel(input_dims=512, output_dims=2, units=256, hidden_layer=HIDDEN_LAYER)
-    negative_sample_rate = 5
-    min_dist = .1
-    _a, _b = find_ab_params(1.0, min_dist)
-    umap_loss_fn = UmapLoss(negative_sample_rate, DEVICE, _a=_a, _b=_b, repulsion_strength=1.0)
-    recon_loss_fn = ReconstructionLoss(beta=1.0)
-    criterion = SingleVisLoss(umap_loss_fn, recon_loss_fn, lambd=LAMBDA)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=.01, weight_decay=1e-5)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=.1)
-
-    trainer = SingleVisTrainer(model, criterion=criterion, optimizer=optimizer, lr_scheduler=lr_scheduler, edge_loader=None, DEVICE=DEVICE)
-    trainer.load(file_path=os.path.join(data_provider.model_path,"{}".format(VIS_MODEL_NAME)))
-    trainer.model.eval()
-
-    vis = visualizer(data_provider, trainer.model, RESOLUTION, 10, CLASSES)
-    evaluator = Evaluator(data_provider, trainer)
-    timevis = TimeVisBackend(data_provider, trainer, evaluator)
-
-    train_data = data_provider.train_representation(EPOCH)
-    test_data = data_provider.test_representation(EPOCH)
-    all_data = np.concatenate((train_data, test_data), axis=0)
-
-    embedding_2d = timevis.batch_project(all_data).tolist()
-    # embedding_2d = trainer.model.encoder(
-    #     torch.from_numpy(all_data).to(dtype=torch.float32, device=trainer.DEVICE)).cpu().detach().numpy().tolist()
-    train_labels = data_provider.train_labels(EPOCH)
-    test_labels = data_provider.test_labels(EPOCH)
-    labels = np.concatenate((train_labels, test_labels), axis=0).astype("int").tolist()
-
-    training_data_number = config["TRAINING_LEN"]
-    testing_data_number = config["TESTING_LEN"]
-    testing_data_index = list(range(training_data_number, training_data_number + testing_data_number))
-
-    # !TODO[fix] need to align background point position here for each epoch...
-    grid, decision_view = vis.get_epoch_decision_view(EPOCH, RESOLUTION)
-    grid = grid.reshape((-1, 2)).tolist()
-    decision_view = decision_view * 255
-    decision_view = decision_view.reshape((-1, 3)).astype(int).tolist()
-    COLOR = vis.get_standard_classes_color() * 255
-    COLOR = COLOR.astype(int)
-
-    # TODO fix its structure
-    # evaluation = evaluator.get_eval(file_name="test_evaluation")
-    eval_new = dict()
-    # eval_new["nn_train_15"] = evaluation["15"]['nn_train'][str(EPOCH)]
-    # eval_new['nn_test_15'] = evaluation["15"]['nn_test'][str(EPOCH)]
-    # eval_new['bound_train_15'] = evaluation['15']['b_train'][str(EPOCH)]
-    # eval_new['bound_test_15'] = evaluation['15']['b_test'][str(EPOCH)]
-    # eval_new['ppr_train'] = evaluation['ppr_train'][str(EPOCH)]
-    # eval_new['ppr_test'] = evaluation['ppr_test'][str(EPOCH)]
-    #  eval_new = dict()
-    eval_new["nn_train_15"] = 1
-    eval_new['nn_test_15'] = 1
-    eval_new['bound_train_15'] = 1
-    eval_new['bound_test_15'] = 1
-    eval_new['ppr_train'] = 1
-    eval_new['ppr_test'] = 1
-
-    # maybe remove this? compute at frontend
-    label_color_list = COLOR[labels].tolist()
-    label_name_list = CLASSES[labels].tolist()
-
-    prediction = data_provider.get_pred(EPOCH, all_data).argmax(-1)
-    prediction_list = CLASSES[prediction].tolist()
-    
-    max_iter = (EPOCH_END - EPOCH_START) // EPOCH_PERIOD + 1
-
-    _, conf_diff = timevis.batch_inv_preserve(EPOCH, all_data)
-    current_index = timevis.get_epoch_index(EPOCH)
-
-    new_index = timevis.get_new_index(iteration)
-    noisy_data = timevis.noisy_data_index()
-    original_labels = timevis.get_original_labels()
-    original_label_list = CLASSES[original_labels].tolist()
-
-    uncertainty_diversity_tot_dict = {}
-    uncertainty_diversity_tot_dict['uncertainty'] = timevis.get_uncertainty_score(EPOCH)
-    uncertainty_diversity_tot_dict['diversity'] = timevis.get_diversity_score(EPOCH)
-    uncertainty_diversity_tot_dict['tot'] = timevis.get_total_score(EPOCH)
-
-    uncertainty_ranking_list = [i[0] for i in sorted(enumerate(uncertainty_diversity_tot_dict['uncertainty']), key=lambda x: x[1])]
-    diversity_ranking_list = [i[0] for i in sorted(enumerate(uncertainty_diversity_tot_dict['diversity']), key=lambda x: x[1])]
-    tot_ranking_list = [i[0] for i in sorted(enumerate(uncertainty_diversity_tot_dict['tot']), key=lambda x: x[1])]
-    uncertainty_diversity_tot_dict['uncertainty_ranking'] = uncertainty_ranking_list
-    uncertainty_diversity_tot_dict['diversity_ranking'] = diversity_ranking_list
-    uncertainty_diversity_tot_dict['tot_ranking'] = tot_ranking_list
-
-    selected_points = np.arange(data_provider.train_num + data_provider.test_num)
-    for key in predicates.keys():
-        if key == "new_selection":
-            tmp = np.array(timevis.get_new_index(int(predicates[key])))
-        elif key == "label":
-            tmp = np.array(timevis.filter_label(predicates[key]))
-        elif key == "type":
-            tmp = np.array(timevis.filter_type(predicates[key], int(iteration)))
-        else:
-            tmp = np.arange(data_provider.train_num + data_provider.test_num)
-        selected_points = np.intersect1d(selected_points, tmp)
+    embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, current_index, \
+    testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, EPOCH, predicates)
 
     sys.path.remove(CONTENT_PATH)
 
-
     return make_response(jsonify({'result': embedding_2d, 'grid_index': grid, 'grid_color': decision_view,
-                                  'label_color_list': label_color_list, 'label_list': label_name_list,
+                                  'label_color_list': label_color_list, 'label_list': label_list,
                                   'maximum_iteration': max_iter, 'training_data': current_index,
                                   'testing_data': testing_data_index, 'evaluation': eval_new,
-                                  'prediction_list': prediction_list, 'new_selection': new_index,
-                                  'noisy_data': noisy_data, 'original_label_list': original_label_list,
-                                  'inv_acc_list': conf_diff.tolist(),
-                                  'uncertainty_diversity_tot': uncertainty_diversity_tot_dict,
+                                  'prediction_list': prediction_list,
                                   "selectedPoints":selected_points.tolist()}), 200)
 
 @app.route('/query', methods=["POST"])
 @cross_origin()
 def filter():
-    # res = request.get_json()
-    # string = res["predicates"]["label"]
-    # CONTENT_PATH = os.path.normpath(res['content_path'])
+    res = request.get_json()
+    CONTENT_PATH = os.path.normpath(res['path'])
+    EPOCH = int(res['iteration'])
+    predicates = res["predicates"]
 
-    # data =  InputStream(string)
-    # # lexer
-    # lexer = MyGrammarLexer(data)
-    # stream = CommonTokenStream(lexer)
-    # # parser
-    # parser = MyGrammarParser(stream)
-    # tree = parser.expr()
-    # # Currently this is hardcoded for CIFAR10, changes need to be made in future
-    # # Error will appear based on some of the queries sent
-    # model_epochs = [40, 80, 120, 160, 200]
-    # # evaluator
-    # listener = MyGrammarPrintListener(model_epochs)
-    # walker = ParseTreeWalker()
-    # walker.walk(listener, tree)
-    # statement = listener.result
-
-    # sql_engine       = create_engine('mysql+pymysql://xg:password@localhost/dviDB', pool_recycle=3600)
-    # db_connection    = sql_engine.connect()
-    # frame           = pd.read_sql(statement, db_connection);
-    # pd.set_option('display.expand_frame_repr', False)
-    # db_connection.close()
-    # result = []
-    # for _, row in frame.iterrows():
-    #     for col in frame.columns:
-    #         result.append(int(row[col]))
-    result = np.arange(50000).tolist()
-    return make_response(jsonify({"selectedPoints":result}), 200)
-
-
-@app.route('/saveDVIselections', methods=["POST"])
-@cross_origin()
-def save_DVI_selections():
-    data = request.get_json()
-    indices = data["newIndices"]
-
-    CONTENT_PATH = os.path.normpath(data['content_path'])
-    iteration = data["iteration"]
     sys.path.append(CONTENT_PATH)
+    timevis = initialize_backend(CONTENT_PATH)
 
-    # load hyperparameters
-    config_file = os.path.join(CONTENT_PATH, "config.json")
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-    except:
-        raise FileNotFoundError("config file not exists...")
+    training_data_number = timevis.hyperparameters["TRAINING"]["train_num"]
+    testing_data_number = timevis.hyperparameters["TRAINING"]["test_num"]
 
-
-    LAMBDA = config["TRAINING"]["LAMBDA"]
-    EPOCH_START = config["EPOCH_START"]
-    EPOCH_END = config["EPOCH_END"]
-    EPOCH_PERIOD = config["EPOCH_PERIOD"]
-    SUBJECT_MODEL_NAME = config["TRAINING"]["SUBJECT_MODEL_NAME"]
-    VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
-    EPOCH = EPOCH_START + (iteration - 1)* EPOCH_PERIOD
-
-
-    # define hyperparameters
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    import Model.model as subject_model
-    try:
-        net = eval("subject_model.{}()".format(SUBJECT_MODEL_NAME))
-    except:
-        raise NameError("No subject model found in model.py...")
-
-    data_provider = DataProvider(CONTENT_PATH, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, verbose=1)
-    model = SingleVisualizationModel.SingleVisualizationModel(input_dims=512, output_dims=2, units=256)
-    negative_sample_rate = 5
-    min_dist = .1
-    # _a, _b = find_ab_params(1.0, min_dist)
-    umap_loss_fn = UmapLoss(negative_sample_rate, DEVICE, _a=[1.0], _b=[1.0], repulsion_strength=1.0)
-    recon_loss_fn = ReconstructionLoss(beta=1.0)
-    criterion = SingleVisLoss(umap_loss_fn, recon_loss_fn, lambd=LAMBDA)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=.01, weight_decay=1e-5)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=.1)
-
-    trainer = SingleVisTrainer(model, criterion=criterion, optimizer=optimizer, lr_scheduler=lr_scheduler, edge_loader=None, DEVICE=DEVICE)
-    trainer.load(file_path=os.path.join(data_provider.model_path,"{}".format(VIS_MODEL_NAME)))
-    trainer.model.eval()
-
-    evaluator = Evaluator(data_provider, trainer)
-    timevis = TimeVisBackend(data_provider, trainer.model, evaluator)
-
-    timevis.save_DVI_selection(EPOCH, indices)
+    current_index = timevis.get_epoch_index(EPOCH)
+    selected_points = np.arange(training_data_number + testing_data_number)[current_index]
+    for key in predicates.keys():
+        if key == "label":
+            tmp = np.array(timevis.filter_label(predicates[key]))
+        elif key == "type":
+            tmp = np.array(timevis.filter_type(predicates[key], int(EPOCH)))
+        else:
+            tmp = np.arange(training_data_number + testing_data_number)
+        selected_points = np.intersect1d(selected_points, tmp)
     sys.path.remove(CONTENT_PATH)
 
-    return make_response(jsonify({"message":"Save DVI selection succefully!"}), 200)
+    return make_response(jsonify({"selectedPoints": selected_points}), 200)
 
 
 def image_cut_save(path, left, upper, right, lower, save_path):
@@ -436,23 +123,12 @@ def image_cut_save(path, left, upper, right, lower, save_path):
 @cross_origin()
 def sprite_image():
     path = request.args.get("path")
-    CONTENT_PATH = os.path.normpath(path)
-
     index=request.args.get("index")
+
+    CONTENT_PATH = os.path.normpath(path)
     print('index', index)
     idx = int(index)
     pic_save_dir_path = os.path.join(CONTENT_PATH, "sprites", "{}.png".format(idx))
-    # pic_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/cifar10.png'
-    # pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/new.png'
-    # left, upper, right, lower = 0, 0, 32, 32
-    # left =  (i%245)*32
-    # upper = round(i/245)*32
-    # right = left+32
-    # lower = upper+32
-    # name = "img" + str(i)
-    # pic_save_dir_path = '/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10/img/'+name+'.png'
-    # print(left,upper,right,lower,name,pic_save_dir_path)
-    # image_cut_save(pic_path, left, upper, right, lower, pic_save_dir_path)
     img_stream = ''
     with open(pic_save_dir_path, 'rb') as img_f:
         img_stream = img_f.read()
@@ -467,9 +143,138 @@ def sprite_json():
        config = json.load(f)
     return make_response(jsonify({"imgUrl":config}), 200)
 # if this is the main thread of execution first load the model and then start the server
+
+
+@app.route('/al_query', methods=["POST"])
+@cross_origin()
+def al_query():
+    data = request.get_json()
+    CONTENT_PATH = os.path.normpath(data['content_path'])
+    iteration = data["iteration"]
+    strategy = data["strategy"]
+    budget = int(data["budget"])
+    sys.path.append(CONTENT_PATH)
+
+    timevis = initialize_backend(CONTENT_PATH)
+    indices = timevis.al_query(iteration, budget, strategy)
+
+    sys.path.remove(CONTENT_PATH)
+    return make_response(jsonify({"selectedPoints": indices}), 200)
+
+@app.route('/al_train', methods=["POST"])
+@cross_origin()
+def al_train():
+    data = request.get_json()
+    CONTENT_PATH = os.path.normpath(data['content_path'])
+    new_indices = data["newIndices"]
+    iteration = data["iteration"]
+    sys.path.append(CONTENT_PATH)
+
+    timevis = initialize_backend(CONTENT_PATH)
+    timevis.al_train(iteration, new_indices)
+
+    # preprocess
+    NEW_ITERATION = iteration + 1
+    PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
+    B_N_EPOCHS = config["VISUALIZATION"]["BOUNDARY"]["B_N_EPOCHS"]
+    L_BOUND = config["VISUALIZATION"]["BOUNDARY"]["L_BOUND"]
+    if PREPROCESS:
+        timevis.data_provider._meta_data(NEW_ITERATION)
+        if B_N_EPOCHS != 0:
+            LEN = len(timevis.data_provider.train_labels(NEW_ITERATION))
+            timevis.data_provider._estimate_boundary(NEW_ITERATION, LEN//10, l_bound=L_BOUND)
+
+    # train visualization model
+    CLASSES = config["CLASSES"]
+    DATASET = config["DATASET"]
+    DEVICE = torch.device("cuda:{:d}".format(GPU_ID) if torch.cuda.is_available() else "cpu")
+    #################################################   VISUALIZATION PARAMETERS    ########################################
+    PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
+    B_N_EPOCHS = config["VISUALIZATION"]["BOUNDARY"]["B_N_EPOCHS"]
+    L_BOUND = config["VISUALIZATION"]["BOUNDARY"]["L_BOUND"]
+    LAMBDA = config["VISUALIZATION"]["LAMBDA"]
+    HIDDEN_LAYER = config["VISUALIZATION"]["HIDDEN_LAYER"]
+    N_NEIGHBORS = config["VISUALIZATION"]["N_NEIGHBORS"]
+    MAX_EPOCH = config["VISUALIZATION"]["MAX_EPOCH"]
+    S_N_EPOCHS = config["VISUALIZATION"]["S_N_EPOCHS"]
+    PATIENT = config["VISUALIZATION"]["PATIENT"]
+    VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
+    RESOLUTION = config["VISUALIZATION"]["RESOLUTION"]
+    EVALUATION_NAME = config["VISUALIZATION"]["EVALUATION_NAME"]
+    NET = config["TRAINING"]["NET"]
+
+    t0 = time.time()
+    spatial_cons = SingleEpochSpatialEdgeConstructor(timevis.data_provider, NEW_ITERATION, S_N_EPOCHS, B_N_EPOCHS, 15)
+    edge_to, edge_from, probs, feature_vectors, attention = spatial_cons.construct()
+    t1 = time.time()
+
+    probs = probs / (probs.max()+1e-3)
+    eliminate_zeros = probs>1e-3
+    edge_to = edge_to[eliminate_zeros]
+    edge_from = edge_from[eliminate_zeros]
+    probs = probs[eliminate_zeros]
+
+    # save result
+    save_dir = os.path.join(timevis.data_provider.model_path, "SV_time_al.json")
+    if not os.path.exists(save_dir):
+        evaluation = dict()
+    else:
+        f = open(save_dir, "r")
+        evaluation = json.load(f)
+        f.close()
+    if "complex_construction" not in evaluation.keys():
+        evaluation["complex_construction"] = dict()
+    evaluation["complex_construction"][str(NEW_ITERATION)] = round(t1-t0, 3)
+    with open(save_dir, 'w') as f:
+        json.dump(evaluation, f)
+    print("constructing timeVis complex in {:.1f} seconds.".format(t1-t0))
+
+
+    dataset = DataHandler(edge_to, edge_from, feature_vectors, attention)
+    n_samples = int(np.sum(S_N_EPOCHS * probs) // 1)
+    # chosse sampler based on the number of dataset
+    if len(edge_to) > 2^24:
+        sampler = CustomWeightedRandomSampler(probs, n_samples, replacement=True)
+    else:
+        sampler = WeightedRandomSampler(probs, n_samples, replacement=True)
+    edge_loader = DataLoader(dataset, batch_size=1024, sampler=sampler)
+    timevis.trainer.update_edge_loader(edge_loader)
+
+    t2=time.time()
+    timevis.trainer.train(PATIENT, MAX_EPOCH)
+    t3 = time.time()
+    # save result
+    save_dir = os.path.join(timevis.data_provider.model_path, "SV_time_al.json")
+    if not os.path.exists(save_dir):
+        evaluation = dict()
+    else:
+        f = open(save_dir, "r")
+        evaluation = json.load(f)
+        f.close()
+    if  "training" not in evaluation.keys():
+        evaluation["training"] = dict()
+    evaluation["training"][str(NEW_ITERATION)] = round(t3-t2, 3)
+    with open(save_dir, 'w') as f:
+        json.dump(evaluation, f)
+    save_dir = os.path.join(timevis.data_provider.model_path, "Iteration_{}".format(NEW_ITERATION))
+    os.system("mkdir -p {}".format(save_dir))
+    timevis.trainer.save(save_dir=save_dir, file_name="al")
+    
+    # update iteration projection
+    embedding_2d, grid, decision_view, label_color_list, label_list, _, current_index, \
+    testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, NEW_ITERATION, dict())
+
+    sys.path.remove(CONTENT_PATH)
+    return make_response(jsonify({'result': embedding_2d, 'grid_index': grid, 'grid_color': decision_view,
+                                  'label_color_list': label_color_list, 'label_list': label_list,
+                                  'maximum_iteration': NEW_ITERATION, 'training_data': current_index,
+                                  'testing_data': testing_data_index, 'evaluation': eval_new,
+                                  'prediction_list': prediction_list,
+                                  "selectedPoints":selected_points.tolist()}), 200)
+
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
         config = json.load(f)
-        ip_adress = config["DVIServerIP"]
-        port = config["DVIServerPort"]
+        ip_adress = config["ServerIP"]
+        port = config["ServerPort"]
     app.run(host=ip_adress, port=int(port))
