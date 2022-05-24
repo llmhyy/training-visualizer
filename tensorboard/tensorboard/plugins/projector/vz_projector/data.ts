@@ -604,7 +604,7 @@ export class DataSet {
               } else {
                 dataPoint.current_wrong_prediction = true;
               }
-              dataPoint.new_selection[iteration] = false;
+              // dataPoint.new_selection[iteration] = false;
               dataPoint.current_new_selection = false;
               if (original_label_list) {
                 dataPoint.original_label = original_label_list[i];
@@ -644,7 +644,7 @@ export class DataSet {
               dataPoint.inv_acc[iteration] = 0;
               dataPoint.current_inv_acc = 0;
               dataPoint.current_new_selection = undefined;
-              dataPoint.new_selection[iteration] = undefined;
+              // dataPoint.new_selection[iteration] = undefined;
               dataPoint.current_wrong_prediction = undefined;
               dataPoint.original_label = "background";
               dataPoint.noisy = undefined;
@@ -683,12 +683,12 @@ export class DataSet {
               dataPoint.current_testing = true;
             }
 
-            for (let i = 0; i < new_selection.length; i++) {
-              const dataIndex = new_selection[i];
-              let dataPoint = this.points[dataIndex];
-              dataPoint.new_selection[iteration] = true;
-              dataPoint.current_new_selection = true;
-            }
+            // for (let i = 0; i < new_selection.length; i++) {
+            //   const dataIndex = new_selection[i];
+            //   let dataPoint = this.points[dataIndex];
+            //   dataPoint.new_selection[iteration] = true;
+            //   dataPoint.current_new_selection = true;
+            // }
 
             // for (let i = 0; i < noisy_data?.length; i++) {
             //   const dataIndex = noisy_data[i];
@@ -745,10 +745,10 @@ export class DataSet {
             dataPoint.current_wrong_prediction = undefined;
           }
         }
-        dataPoint.current_new_selection = dataPoint.new_selection[iteration];
-        if (dataPoint.current_new_selection) {
-          newSelection.push(i);
-        }
+        // dataPoint.current_new_selection = dataPoint.new_selection[iteration];
+        // if (dataPoint.current_new_selection) {
+        //   newSelection.push(i);
+        // }
         // if (this.is_uncertainty_diversity_tot_exist[iteration]) {
         //   dataPoint.metadata['uncertainty'] = dataPoint.uncertainty[iteration];
         //   dataPoint.metadata['diversity'] = dataPoint.diversity[iteration];
@@ -937,7 +937,7 @@ export class DataSet {
             } else {
               dataPoint.current_wrong_prediction = true;
             }
-            dataPoint.new_selection[iteration] = false;
+            // dataPoint.new_selection[iteration] = false;
             dataPoint.current_new_selection = false;
             if (original_label_list) {
               dataPoint.original_label = original_label_list[i];
@@ -976,7 +976,7 @@ export class DataSet {
             dataPoint.inv_acc[iteration] = 0;
             dataPoint.current_inv_acc = 0;
             dataPoint.current_new_selection = undefined;
-            dataPoint.new_selection[iteration] = undefined;
+            // dataPoint.new_selection[iteration] = undefined;
             dataPoint.current_wrong_prediction = undefined;
             dataPoint.original_label = "background";
             dataPoint.noisy = undefined;
@@ -1015,12 +1015,12 @@ export class DataSet {
             dataPoint.current_testing = true;
           }
 
-          for (let i = 0; i < new_selection.length; i++) {
-            const dataIndex = new_selection[i];
-            let dataPoint = this.points[dataIndex];
-            dataPoint.new_selection[iteration] = true;
-            dataPoint.current_new_selection = true;
-          }
+          // for (let i = 0; i < new_selection.length; i++) {
+          //   const dataIndex = new_selection[i];
+          //   let dataPoint = this.points[dataIndex];
+          //   dataPoint.new_selection[iteration] = true;
+          //   dataPoint.current_new_selection = true;
+          // }
 
           // for (let i = 0; i < noisy_data?.length; i++) {
           //   const dataIndex = noisy_data[i];
