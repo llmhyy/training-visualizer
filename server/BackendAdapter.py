@@ -2,6 +2,7 @@
 import os
 import sys
 import json
+import time
 import torch
 import pandas as pd
 import numpy as np
@@ -90,6 +91,7 @@ class TimeVisBackend:
     def filter_label(self, label, epoch_id):
         try:
             index = self.data_provider.classes.index(label)
+            print("class index\t", index)
         except:
             index = -1
         train_labels = self.data_provider.train_labels(epoch_id)
@@ -152,6 +154,7 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         NUM_QUERY = budget
         TOTAL_EPOCH = self.hyperparameters["TRAINING"]["total_epoch"]
         METHOD = strategy
+        # TODO fix me
         GPU = "0"
         NET = self.hyperparameters["TRAINING"]["NET"]
         DATA_NAME = self.hyperparameters["DATASET"]
@@ -191,21 +194,44 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         if strategy == "random":
             from query_strategies.random import RandomSampling
             q_strategy = RandomSampling(task_model, task_model_type, n_pool, idxs_lb, 10, DATA_NAME, NET, gpu=GPU, **self.hyperparameters["TRAINING"])
-        elif strategy == "entropy":
-            from query_strategies.entropy import EntropySampling
-            q_strategy = EntropySampling(task_model, task_model_type, n_pool, idxs_lb, 10, DATA_NAME, NET, gpu=GPU, **self.hyperparameters["TRAINING"])
+            # print information
+            print(DATA_NAME)
+            print(type(strategy).__name__)
+            print('================Round {:d}==============='.format(iteration+1))
+            # query new samples
+            t0 = time.time()
+            new_indices = q_strategy.query(NUM_QUERY)
+            t1 = time.time()
+            print("Query time is {:.2f}".format(t1-t0))
+        elif strategy == "LeastConfidence":
+            from query_strategies.LeastConfidence import LeastConfidenceSampling
+            q_strategy = LeastConfidenceSampling(task_model, task_model_type, n_pool, idxs_lb, 10, DATA_NAME, NET, gpu=GPU, **self.hyperparameters["TRAINING"])
+            # print information
+            print(DATA_NAME)
+            print(type(strategy).__name__)
 
-        # print information
-        print(DATA_NAME)
-        print(type(strategy).__name__)
+            print('================Round {:d}==============='.format(iteration+1))
 
-        print('================Round {:d}==============='.format(iteration+1))
+            # query new samples
+            t0 = time.time()
+            new_indices = q_strategy.query(complete_dataset, NUM_QUERY)
+            t1 = time.time()
+            print("Query time is {:.2f}".format(t1-t0))
+        
+        elif strategy == "coreset":
+            from query_strategies.coreset import CoreSetSampling
+            q_strategy = CoreSetSampling(task_model, task_model_type, n_pool, 512, idxs_lb, DATA_NAME, NET, gpu=GPU, **self.hyperparameters["TRAINING"])
 
-        # query new samples
-        t0 = time.time()
-        new_indices = q_strategy.query(complete_dataset, NUM_QUERY)
-        t1 = time.time()
-        print("Query time is {:.2f}".format(t1-t0))
+            print('================Round {:d}==============='.format(iteration+1))
+
+            embedding = q_strategy.get_embedding(complete_dataset)
+
+            # query new samples
+            t0 = time.time()
+            new_indices = q_strategy.query(embedding, NUM_QUERY)
+            t1 = time.time()
+            print("Query time is {:.2f}".format(t1-t0))
+
         return new_indices
     
     def al_train(self, iteration, indices):
@@ -217,7 +243,7 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         TOTAL_EPOCH = self.hyperparameters["TRAINING"]["total_epoch"]
         NET = self.hyperparameters["TRAINING"]["NET"]
         DEVICE = self.data_provider.DEVICE
-        sys.path.append(CONTENT_PATH)
+        # sys.path.append(CONTENT_PATH)
 
         # record output information
         now = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime(time.time())) 
@@ -230,12 +256,13 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         # loading neural network
         import Model.model as subject_model
         task_model = eval("subject_model.{}()".format(NET))
+        # task_model = subject_model.ResNet18()
         # start experiment
 
         new_iteration_dir = os.path.join(CONTENT_PATH, "Model", "Iteration_{}".format(iteration+1))
         os.system("mkdir -p {}".format(new_iteration_dir))
 
-        save_location = os.path.join(self.data_provider.model_path, "Iteration_{}".format(iteration), "index.json")
+        save_location = os.path.join(new_iteration_dir, "index.json")
         with open(save_location, "w") as f:
             json.dump(train_idx.tolist(), f)
         
@@ -245,13 +272,14 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         train_dataset = torchvision.datasets.CIFAR10(root="..//data//CIFAR10", download=True, train=True, transform=self.hyperparameters["TRAINING"]['transform_tr'])
         test_dataset = torchvision.datasets.CIFAR10(root="..//data//CIFAR10", download=True, train=False, transform=self.hyperparameters["TRAINING"]['transform_te'])
         complete_dataset = torchvision.datasets.CIFAR10(root="..//data//CIFAR10", download=True, train=True, transform=self.hyperparameters["TRAINING"]['transform_te'])
-        train_dataset = Subset(complete_dataset, train_idx)
-        train_loader = DataLoader(train_dataset, batch_size=self.kwargs['loader_tr_args']['batch_size'], shuffle=True, num_workers=self.kwargs['loader_tr_args']['num_workers'])
+        train_dataset = Subset(train_dataset, train_idx)
+        train_loader = DataLoader(train_dataset, batch_size=self.hyperparameters["TRAINING"]['loader_tr_args']['batch_size'], shuffle=True, num_workers=self.hyperparameters["TRAINING"]['loader_tr_args']['num_workers'])
         optimizer = optim.SGD(
-            task_model.parameters(), lr=self.kwargs['optimizer_args']['lr'], momentum=self.kwargs['optimizer_args']['momentum'], weight_decay=self.kwargs['optimizer_args']['weight_decay']
+            task_model.parameters(), lr=self.hyperparameters["TRAINING"]['optimizer_args']['lr'], momentum=self.hyperparameters["TRAINING"]['optimizer_args']['momentum'], weight_decay=self.hyperparameters["TRAINING"]['optimizer_args']['weight_decay']
         )
         criterion = torch.nn.CrossEntropyLoss(reduction='none')
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=TOTAL_EPOCH)
+        # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.hyperparameters["TRAINING"]['milestone']) # official implementation
 
         for epoch in range(TOTAL_EPOCH):
             task_model.train()
@@ -286,29 +314,27 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
             scheduler.step()
         t2 = time.time()
         print("Training time is {:.2f}".format(t2-t1))
+        # save model
+        model_path = os.path.join(new_iteration_dir, "subject_model.pth")
+        torch.save(task_model.state_dict(), model_path)
 
         # compute accuracy at each round
-        loader_te = DataLoader(test_dataset, shuffle=False, **self.kwargs['loader_te_args'])
+        loader_te = DataLoader(test_dataset, shuffle=False, **self.hyperparameters["TRAINING"]['loader_te_args'])
         task_model.to(DEVICE)
         task_model.eval()
 
-        test_num = len(test_dataset.targets)
-        batch_size = self.kwargs['loader_te_args']['batch_size']
+        batch_size = self.hyperparameters["TRAINING"]['loader_te_args']['batch_size']
         label = np.array(test_dataset.targets)
         pred = np.zeros(len(label), dtype=np.long)
         with torch.no_grad():
             for idx, (x, y) in enumerate(loader_te):
-                x, y = x.to(self.device), y.to(self.device)
-                out = self.task_model(x)
+                x, y = x.to(DEVICE), y.to(DEVICE)
+                out = task_model(x)
                 p = out.argmax(1)
                 pred[idx*batch_size:(idx+1)*batch_size] = p.cpu().numpy()
 
         acc =  np.sum(pred == label) / float(label.shape[0])
         print('Test Accuracy {:.3f}'.format(100*acc))
-
-        # save model
-        model_path = os.path.join(new_iteration_dir, "subject_model.pth")
-        torch.save(task_model.state_dict(), model_path)
 
 
     def save_human_selection(self, iteration, indices):
