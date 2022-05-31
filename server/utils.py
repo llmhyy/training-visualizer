@@ -20,10 +20,9 @@ from singleVis.visualizer import visualizer
 
 from BackendAdapter import TimeVisBackend, ActiveLearningTimeVisBackend
 
-def initialize_backend(CONTENT_PATH):
+def initialize_backend(CONTENT_PATH, EPOCH):
+    # TODO fix this
     GPU_ID = "0"
-    content_path = CONTENT_PATH
-    sys.path.append(content_path)
 
     from config import config
 
@@ -68,13 +67,13 @@ def initialize_backend(CONTENT_PATH):
     # ########################################################################################################################
 
     if SETTING == "normal":
-        data_provider = NormalDataProvider(content_path, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, verbose=1)
+        data_provider = NormalDataProvider(CONTENT_PATH, net, EPOCH_START, EPOCH_END, EPOCH_PERIOD, split=-1, device=DEVICE, classes=CLASSES, verbose=1)
         # if PREPROCESS:
         #     data_provider._meta_data()
         #     if B_N_EPOCHS != 0:
         #         data_provider._estimate_boundary(LEN//10, l_bound=L_BOUND)
     elif SETTING == "active learning":
-        data_provider = ActiveLearningDataProvider(content_path, net, BASE_ITERATION, split=-1, device=DEVICE, verbose=1)
+        data_provider = ActiveLearningDataProvider(CONTENT_PATH, net, BASE_ITERATION, split=-1, device=DEVICE, classes=CLASSES, verbose=1)
         # if PREPROCESS:
         #     data_provider._meta_data(BASE_ITERATION)
         #     if B_N_EPOCHS != 0:
@@ -98,6 +97,11 @@ def initialize_backend(CONTENT_PATH):
     # ########################################################################################################################
 
     trainer = SingleVisTrainer(model, criterion, optimizer, lr_scheduler,edge_loader=None, DEVICE=DEVICE)
+    if SETTING == "normal":
+        trainer.load(file_path=os.path.join(data_provider.model_path, VIS_MODEL_NAME))
+    elif SETTING == "active learning":
+        trainer.load(file_path=os.path.join(data_provider.model_path, "Iteration_{}".format(EPOCH), VIS_MODEL_NAME))
+    
         
     # ########################################################################################################################
     # #                                                       EVALUATION                                                     #
@@ -131,6 +135,7 @@ def update_epoch_projection(timevis, EPOCH, predicates):
 
     training_data_number = timevis.hyperparameters["TRAINING"]["train_num"]
     testing_data_number = timevis.hyperparameters["TRAINING"]["test_num"]
+    training_data_index = list(range(training_data_number))
     testing_data_index = list(range(training_data_number, training_data_number + testing_data_number))
 
     grid, decision_view = timevis.vis.get_epoch_decision_view(EPOCH, timevis.hyperparameters["VISUALIZATION"]["RESOLUTION"])
@@ -176,8 +181,9 @@ def update_epoch_projection(timevis, EPOCH, predicates):
         # TODO fix this, could be larger than EPOCH
         max_iter = max(timevis.hyperparameters["BASE_ITERATION"], EPOCH)
 
-    current_index = timevis.get_epoch_index(EPOCH)
-    selected_points = np.arange(training_data_number + testing_data_number)[current_index]
+    # current_index = timevis.get_epoch_index(EPOCH)
+    # selected_points = np.arange(training_data_number + testing_data_number)[current_index]
+    selected_points = np.arange(training_data_number + testing_data_number)
     for key in predicates.keys():
         if key == "label":
             tmp = np.array(timevis.filter_label(predicates[key]))
@@ -187,4 +193,4 @@ def update_epoch_projection(timevis, EPOCH, predicates):
             tmp = np.arange(training_data_number + testing_data_number)
         selected_points = np.intersect1d(selected_points, tmp)
     
-    return embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, current_index, testing_data_index, eval_new, prediction_list, selected_points
+    return embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, training_data_index, testing_data_index, eval_new, prediction_list, selected_points
