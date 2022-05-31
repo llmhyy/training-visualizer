@@ -12,10 +12,21 @@ import torchvision
 import torch.nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
+from torch.utils.data import WeightedRandomSampler
 
 timevis_path = "../../DLVisDebugger"
 sys.path.append(timevis_path)
 from singleVis.utils import *
+from singleVis.SingleVisualizationModel import SingleVisualizationModel
+from singleVis.data import DataProvider
+from singleVis.eval.evaluator import Evaluator
+from singleVis.trainer import SingleVisTrainer
+from singleVis.losses import ReconstructionLoss, UmapLoss, SingleVisLoss
+from singleVis.visualizer import visualizer
+from singleVis.custom_weighted_random_sampler import CustomWeightedRandomSampler
+from singleVis.edge_dataset import DataHandler
+from singleVis.eval.evaluator import Evaluator
+from singleVis.spatial_edge_constructor import SingleEpochSpatialEdgeConstructor
 
 active_learning_path = "/home/xianglin/projects/git_space/ActiveLearning"
 sys.path.append(active_learning_path)
@@ -145,7 +156,6 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         index_file = os.path.join(self.data_provider.model_path, "Iteration_{:d}".format(iteration), "index.json")
         index = load_labelled_data_index(index_file)
         return index
-
 
     def al_query(self, iteration, budget, strategy):
         """get the index of new selection from different strategies"""
@@ -346,4 +356,92 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         with open(save_location, "w") as f:
             json.dump(indices, f)
     
-    
+    def vis_train(self, iteration, **config):
+        # preprocess
+        PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
+        B_N_EPOCHS = config["VISUALIZATION"]["BOUNDARY"]["B_N_EPOCHS"]
+        L_BOUND = config["VISUALIZATION"]["BOUNDARY"]["L_BOUND"]
+        if PREPROCESS:
+            self.data_provider._meta_data(iteration)
+            if B_N_EPOCHS != 0:
+                LEN = len(self.data_provider.train_labels(iteration))
+                self.data_provider._estimate_boundary(iteration, LEN//10, l_bound=L_BOUND)
+
+        # train visualization model
+        CLASSES = config["CLASSES"]
+        DATASET = config["DATASET"]
+        # DEVICE = torch.device("cuda:{:}".format(GPU_ID) if torch.cuda.is_available() else "cpu")
+        #################################################   VISUALIZATION PARAMETERS    ########################################
+        PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
+        B_N_EPOCHS = config["VISUALIZATION"]["BOUNDARY"]["B_N_EPOCHS"]
+        L_BOUND = config["VISUALIZATION"]["BOUNDARY"]["L_BOUND"]
+        LAMBDA = config["VISUALIZATION"]["LAMBDA"]
+        HIDDEN_LAYER = config["VISUALIZATION"]["HIDDEN_LAYER"]
+        N_NEIGHBORS = config["VISUALIZATION"]["N_NEIGHBORS"]
+        MAX_EPOCH = config["VISUALIZATION"]["MAX_EPOCH"]
+        S_N_EPOCHS = config["VISUALIZATION"]["S_N_EPOCHS"]
+        PATIENT = config["VISUALIZATION"]["PATIENT"]
+        VIS_MODEL_NAME = config["VISUALIZATION"]["VIS_MODEL_NAME"]
+        RESOLUTION = config["VISUALIZATION"]["RESOLUTION"]
+        EVALUATION_NAME = config["VISUALIZATION"]["EVALUATION_NAME"]
+        NET = config["TRAINING"]["NET"]
+
+        t0 = time.time()
+        spatial_cons = SingleEpochSpatialEdgeConstructor(self.data_provider, iteration, S_N_EPOCHS, B_N_EPOCHS, 15)
+        edge_to, edge_from, probs, feature_vectors, attention = spatial_cons.construct()
+        t1 = time.time()
+
+        probs = probs / (probs.max()+1e-3)
+        eliminate_zeros = probs>1e-3
+        edge_to = edge_to[eliminate_zeros]
+        edge_from = edge_from[eliminate_zeros]
+        probs = probs[eliminate_zeros]
+
+        # save result
+        save_dir = os.path.join(self.data_provider.model_path, "SV_time_al.json")
+        if not os.path.exists(save_dir):
+            evaluation = dict()
+        else:
+            f = open(save_dir, "r")
+            evaluation = json.load(f)
+            f.close()
+        if "complex_construction" not in evaluation.keys():
+            evaluation["complex_construction"] = dict()
+        evaluation["complex_construction"][str(iteration)] = round(t1-t0, 3)
+        with open(save_dir, 'w') as f:
+            json.dump(evaluation, f)
+        print("constructing timeVis complex in {:.1f} seconds.".format(t1-t0))
+
+
+        dataset = DataHandler(edge_to, edge_from, feature_vectors, attention)
+        n_samples = int(np.sum(S_N_EPOCHS * probs) // 1)
+        # chosse sampler based on the number of dataset
+        if len(edge_to) > 2^24:
+            sampler = CustomWeightedRandomSampler(probs, n_samples, replacement=True)
+        else:
+            sampler = WeightedRandomSampler(probs, n_samples, replacement=True)
+        edge_loader = DataLoader(dataset, batch_size=1024, sampler=sampler)
+        self.trainer.update_edge_loader(edge_loader)
+
+        t2=time.time()
+        self.trainer.train(PATIENT, MAX_EPOCH)
+        t3 = time.time()
+        # save result
+        save_dir = os.path.join(self.data_provider.model_path, "SV_time_al.json")
+        if not os.path.exists(save_dir):
+            evaluation = dict()
+        else:
+            f = open(save_dir, "r")
+            evaluation = json.load(f)
+            f.close()
+        if  "training" not in evaluation.keys():
+            evaluation["training"] = dict()
+        evaluation["training"][str(iteration)] = round(t3-t2, 3)
+        with open(save_dir, 'w') as f:
+            json.dump(evaluation, f)
+        save_dir = os.path.join(self.data_provider.model_path, "Iteration_{}".format(iteration))
+        os.system("mkdir -p {}".format(save_dir))
+        self.trainer.save(save_dir=save_dir, file_name="al")
+
+        
+        

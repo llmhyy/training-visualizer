@@ -22,13 +22,14 @@ from BackendAdapter import TimeVisBackend, ActiveLearningTimeVisBackend
 
 def initialize_backend(CONTENT_PATH, EPOCH):
     # TODO fix this
-    GPU_ID = "0"
+    # GPU_ID = "0"
 
     from config import config
 
     # load hyperparameters
     CLASSES = config["CLASSES"]
     DATASET = config["DATASET"]
+    GPU_ID = config["GPU"]
     DEVICE = torch.device("cuda:{}".format(GPU_ID) if torch.cuda.is_available() else "cpu")
     #################################################   VISUALIZATION PARAMETERS    ########################################
     PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
