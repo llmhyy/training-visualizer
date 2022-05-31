@@ -91,7 +91,6 @@ class TimeVisBackend:
     def filter_label(self, label, epoch_id):
         try:
             index = self.data_provider.classes.index(label)
-            print("class index\t", index)
         except:
             index = -1
         train_labels = self.data_provider.train_labels(epoch_id)
@@ -256,7 +255,6 @@ class ActiveLearningTimeVisBackend(TimeVisBackend):
         # loading neural network
         import Model.model as subject_model
         task_model = eval("subject_model.{}()".format(NET))
-        # task_model = subject_model.ResNet18()
         # start experiment
 
         new_iteration_dir = os.path.join(CONTENT_PATH, "Model", "Iteration_{}".format(iteration+1))
