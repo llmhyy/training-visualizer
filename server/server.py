@@ -4,6 +4,10 @@
 
 # TODO change to timevis format
 # TODO set a base class for some trainer functions... we dont need too many hyperparameters for frontend
+# TODO fix gpu_id
+# TODO refactor, similar function should be in utils
+# TODO tidy up
+# TODO return lb and ulb property
 # from tkinter import HIDDEN
 from PIL import Image
 
@@ -57,16 +61,17 @@ def update_projection():
     predicates = res["predicates"]
 
     sys.path.append(CONTENT_PATH)
-    timevis = initialize_backend(CONTENT_PATH)
+    timevis = initialize_backend(CONTENT_PATH, EPOCH)
 
-    embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, current_index, \
+    embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, training_data_index, \
     testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, EPOCH, predicates)
 
     sys.path.remove(CONTENT_PATH)
 
     return make_response(jsonify({'result': embedding_2d, 'grid_index': grid, 'grid_color': decision_view,
                                   'label_color_list': label_color_list, 'label_list': label_list,
-                                  'maximum_iteration': max_iter, 'training_data': current_index,
+                                  'maximum_iteration': max_iter, 
+                                  'training_data': training_data_index,
                                   'testing_data': testing_data_index, 'evaluation': eval_new,
                                   'prediction_list': prediction_list,
                                   "selectedPoints":selected_points.tolist()}), 200)
@@ -80,24 +85,28 @@ def filter():
     predicates = res["predicates"]
 
     sys.path.append(CONTENT_PATH)
-    timevis = initialize_backend(CONTENT_PATH)
+    timevis = initialize_backend(CONTENT_PATH, EPOCH)
 
     training_data_number = timevis.hyperparameters["TRAINING"]["train_num"]
     testing_data_number = timevis.hyperparameters["TRAINING"]["test_num"]
 
-    current_index = timevis.get_epoch_index(EPOCH)
-    selected_points = np.arange(training_data_number + testing_data_number)[current_index]
+    # current_index = timevis.get_epoch_index(EPOCH)
+    # selected_points = np.arange(training_data_number + testing_data_number)[current_index]
+    selected_points = np.arange(training_data_number + testing_data_number)
     for key in predicates.keys():
         if key == "label":
-            tmp = np.array(timevis.filter_label(predicates[key]))
+            tmp = np.array(timevis.filter_label(predicates[key], int(EPOCH)))
         elif key == "type":
             tmp = np.array(timevis.filter_type(predicates[key], int(EPOCH)))
+        elif key == "confidence":
+            # TODO
+            continue
         else:
             tmp = np.arange(training_data_number + testing_data_number)
         selected_points = np.intersect1d(selected_points, tmp)
     sys.path.remove(CONTENT_PATH)
 
-    return make_response(jsonify({"selectedPoints": selected_points}), 200)
+    return make_response(jsonify({"selectedPoints": selected_points.tolist()}), 200)
 
 
 def image_cut_save(path, left, upper, right, lower, save_path):
@@ -155,8 +164,8 @@ def al_query():
     budget = int(data["budget"])
     sys.path.append(CONTENT_PATH)
 
-    timevis = initialize_backend(CONTENT_PATH)
-    indices = timevis.al_query(iteration, budget, strategy)
+    timevis = initialize_backend(CONTENT_PATH, iteration)
+    indices = timevis.al_query(iteration, budget, strategy).tolist()
 
     sys.path.remove(CONTENT_PATH)
     return make_response(jsonify({"selectedPoints": indices}), 200)
@@ -170,8 +179,9 @@ def al_train():
     iteration = data["iteration"]
     sys.path.append(CONTENT_PATH)
 
-    timevis = initialize_backend(CONTENT_PATH)
+    timevis = initialize_backend(CONTENT_PATH, iteration)
     timevis.al_train(iteration, new_indices)
+    from config import config
 
     # preprocess
     NEW_ITERATION = iteration + 1
@@ -187,7 +197,7 @@ def al_train():
     # train visualization model
     CLASSES = config["CLASSES"]
     DATASET = config["DATASET"]
-    DEVICE = torch.device("cuda:{:d}".format(GPU_ID) if torch.cuda.is_available() else "cpu")
+    # DEVICE = torch.device("cuda:{:}".format(GPU_ID) if torch.cuda.is_available() else "cpu")
     #################################################   VISUALIZATION PARAMETERS    ########################################
     PREPROCESS = config["VISUALIZATION"]["PREPROCESS"]
     B_N_EPOCHS = config["VISUALIZATION"]["BOUNDARY"]["B_N_EPOCHS"]
@@ -261,13 +271,13 @@ def al_train():
     timevis.trainer.save(save_dir=save_dir, file_name="al")
     
     # update iteration projection
-    embedding_2d, grid, decision_view, label_color_list, label_list, _, current_index, \
+    embedding_2d, grid, decision_view, label_color_list, label_list, _, training_data_index, \
     testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, NEW_ITERATION, dict())
 
     sys.path.remove(CONTENT_PATH)
     return make_response(jsonify({'result': embedding_2d, 'grid_index': grid, 'grid_color': decision_view,
                                   'label_color_list': label_color_list, 'label_list': label_list,
-                                  'maximum_iteration': NEW_ITERATION, 'training_data': current_index,
+                                  'maximum_iteration': NEW_ITERATION, 'training_data': training_data_index,
                                   'testing_data': testing_data_index, 'evaluation': eval_new,
                                   'prediction_list': prediction_list,
                                   "selectedPoints":selected_points.tolist()}), 200)
