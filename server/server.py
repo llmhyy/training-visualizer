@@ -63,7 +63,7 @@ def update_projection():
     timevis = initialize_backend(CONTENT_PATH, EPOCH)
 
     embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, training_data_index, \
-    testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, EPOCH, predicates)
+    testing_data_index, eval_new, prediction_list, selected_points, properties = update_epoch_projection(timevis, EPOCH, predicates)
 
     sys.path.remove(CONTENT_PATH)
 
@@ -73,7 +73,8 @@ def update_projection():
                                   'training_data': training_data_index,
                                   'testing_data': testing_data_index, 'evaluation': eval_new,
                                   'prediction_list': prediction_list,
-                                  "selectedPoints":selected_points.tolist()}), 200)
+                                  "selectedPoints":selected_points.tolist(),
+                                  "properties":properties.tolist()}), 200)
 
 @app.route('/query', methods=["POST"])
 @cross_origin()
@@ -188,7 +189,7 @@ def al_train():
 
     # update iteration projection
     embedding_2d, grid, decision_view, label_color_list, label_list, _, training_data_index, \
-    testing_data_index, eval_new, prediction_list, selected_points = update_epoch_projection(timevis, NEW_ITERATION, dict())
+    testing_data_index, eval_new, prediction_list, selected_points, properties = update_epoch_projection(timevis, NEW_ITERATION, dict())
 
     sys.path.remove(CONTENT_PATH)
     return make_response(jsonify({'result': embedding_2d, 'grid_index': grid, 'grid_color': decision_view,
@@ -196,7 +197,8 @@ def al_train():
                                   'maximum_iteration': NEW_ITERATION, 'training_data': training_data_index,
                                   'testing_data': testing_data_index, 'evaluation': eval_new,
                                   'prediction_list': prediction_list,
-                                  "selectedPoints":selected_points.tolist()}), 200)
+                                  "selectedPoints":selected_points.tolist(),
+                                  "properties":properties.tolist()}), 200)
 
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
