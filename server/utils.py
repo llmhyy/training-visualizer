@@ -149,20 +149,21 @@ def update_epoch_projection(timevis, EPOCH, predicates):
     color = color.astype(int).tolist()
 
     # TODO fix its structure
-    # evaluation = timevis.evaluator.get_eval(file_name="test_evaluation_al")
+    file_name = timevis.hyperparameters["VISUALIZATION"]["EVALUATION_NAME"]
+    evaluation = timevis.evaluator.get_eval(file_name=file_name)
     eval_new = dict()
-    # eval_new["nn_train_15"] = evaluation["15"]['nn_train'][str(EPOCH)]
-    # eval_new['nn_test_15'] = evaluation["15"]['nn_test'][str(EPOCH)]
-    # eval_new['bound_train_15'] = evaluation["15"]['b_train'][str(EPOCH)]
-    # eval_new['bound_test_15'] = evaluation["15"]['b_test'][str(EPOCH)]
-    # eval_new['ppr_train'] = evaluation["ppr_train"][str(EPOCH)]
-    # eval_new['ppr_test'] = evaluation["ppr_test"][str(EPOCH)]
-    eval_new["nn_train_15"] = 1
-    eval_new['nn_test_15'] = 1
-    eval_new['bound_train_15'] = 1
-    eval_new['bound_test_15'] = 1
-    eval_new['ppr_train'] = 1
-    eval_new['ppr_test'] = 1
+    eval_new["nn_train_15"] = evaluation["15"]['nn_train'][str(EPOCH)]
+    eval_new['nn_test_15'] = evaluation["15"]['nn_test'][str(EPOCH)]
+    eval_new['bound_train_15'] = evaluation["15"]['b_train'][str(EPOCH)]
+    eval_new['bound_test_15'] = evaluation["15"]['b_test'][str(EPOCH)]
+    eval_new['ppr_train'] = evaluation["ppr_train"][str(EPOCH)]
+    eval_new['ppr_test'] = evaluation["ppr_test"][str(EPOCH)]
+    # eval_new["nn_train_15"] = 1
+    # eval_new['nn_test_15'] = 1
+    # eval_new['bound_train_15'] = 1
+    # eval_new['bound_test_15'] = 1
+    # eval_new['ppr_train'] = 1
+    # eval_new['ppr_test'] = 1
 
     label_color_list = []
     label_list = []
@@ -194,4 +195,9 @@ def update_epoch_projection(timevis, EPOCH, predicates):
             tmp = np.arange(training_data_number + testing_data_number)
         selected_points = np.intersect1d(selected_points, tmp)
     
-    return embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, training_data_index, testing_data_index, eval_new, prediction_list, selected_points
+    properties = np.concatenate((np.zeros(training_data_number, dtype="int").astype("int"), 2*np.ones(testing_data_number, dtype="int")), axis=0)
+    lb = timevis.get_epoch_index(EPOCH)
+    ulb = np.setdiff1d(training_data_index, lb)
+    properties[ulb] = 1
+    
+    return embedding_2d, grid, decision_view, label_color_list, label_list, max_iter, training_data_index, testing_data_index, eval_new, prediction_list, selected_points, properties
