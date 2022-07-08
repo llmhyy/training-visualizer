@@ -291,7 +291,7 @@ export class ProjectorScatterPlotAdapter {
   }
   updateBackground() {
     if (window.sceneBackgroundImg && window.sceneBackgroundImg[window.iteration]) {
-      this.scatterPlot.addbackgroundImg('data:image/png;base64,' + window.sceneBackgroundImg[window.iteration])
+      this.scatterPlot.addbackgroundImg(window.sceneBackgroundImg[window.iteration])
     }
   }
   updateScatterPlotAttributes(isFilter?: boolean) {
