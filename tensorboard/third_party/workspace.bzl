@@ -21,7 +21,6 @@ load("@io_bazel_rules_webtesting//web/internal:platform_http_file.bzl", "platfor
 load("@npm_bazel_typescript//:index.bzl", "ts_setup_workspace")
 load("//third_party:fonts.bzl", "tensorboard_fonts_workspace")
 load("//third_party:polymer.bzl", "tensorboard_polymer_workspace")
-load("//third_party:python.bzl", "tensorboard_python_workspace")
 load("//third_party:js.bzl", "tensorboard_js_workspace")
 load("//third_party:typings.bzl", "tensorboard_typings_workspace")
 
@@ -33,7 +32,6 @@ def tensorboard_workspace(name = ""):
     """
     tensorboard_fonts_workspace()
     tensorboard_polymer_workspace()
-    tensorboard_python_workspace()
     tensorboard_typings_workspace()
     tensorboard_js_workspace()
 
