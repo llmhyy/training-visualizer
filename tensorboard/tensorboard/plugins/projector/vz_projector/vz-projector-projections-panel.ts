@@ -180,7 +180,6 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   private iterationInput: number;
 
   initialize(projector: any) {
-    console.log('projector', projector)
     this.polymerChangesTriggerReprojection = true;
     this.projector = projector;
     // Set up TSNE projections.
@@ -437,6 +436,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       } else if (this.iterationInput == this.dataSet.tSNEIteration) {
         logging.setWarningMessage("current iteration!");
         this.jumpDVIButton.disabled = false;
+        logging.setModalMessage(null, msgId);
         return;
       }
       this.nextDVIButton.disabled = true;

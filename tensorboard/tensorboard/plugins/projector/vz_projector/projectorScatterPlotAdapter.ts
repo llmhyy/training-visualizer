@@ -232,12 +232,13 @@ export class ProjectorScatterPlotAdapter {
     this.scatterPlot.render();
   }
 
-  setRenderInTraceLine(renderTraceLine: boolean, epochFrom: number, epochTo: number) {
+  setRenderInTraceLine(renderTraceLine: boolean) {
     if (!renderTraceLine) {
       console.log('none')
     }
     this.renderInTraceLine = renderTraceLine;
-    this.traceLineEpoch = [epochFrom, epochTo]
+    window.allResPositions[0]
+    this.traceLineEpoch = [window.allResPositions[0], window.allResPositions[window.allResPositions.length - 1]]
     this.createVisualizers(false, false);
     this.updateScatterPlotAttributes();
     this.scatterPlot.render();
@@ -291,7 +292,7 @@ export class ProjectorScatterPlotAdapter {
   }
   updateBackground() {
     if (window.sceneBackgroundImg && window.sceneBackgroundImg[window.iteration]) {
-      this.scatterPlot.addbackgroundImg(window.sceneBackgroundImg[window.iteration])
+      this.scatterPlot.addbackgroundImg( window.sceneBackgroundImg[window.iteration])
     }
   }
   updateScatterPlotAttributes(isFilter?: boolean) {
@@ -766,7 +767,7 @@ export class ProjectorScatterPlotAdapter {
           let c = new THREE.Color(unselectedColor);
           let point = ds.points[i]
           //filter之后 只有unlabel无颜色
-          if (window.properties[window.iteration][i] !== 1) {
+          if (window.properties && window.properties[window.iteration] && window.properties[window.iteration][i] !== 1) {
             c = new THREE.Color(point.color)
           }
           colors[dst++] = c.r;
@@ -880,6 +881,12 @@ export class ProjectorScatterPlotAdapter {
             colors[dst++] = c.r;
             colors[dst++] = c.g;
             colors[dst++] = c.b;
+          }else{
+            const c = new THREE.Color(ds.points[i].color);
+            let dst = i * 3;
+            colors[dst++] = c.r;
+            colors[dst++] = c.g;
+            colors[dst++] = c.b;
           }
         }
     }
@@ -903,7 +910,7 @@ export class ProjectorScatterPlotAdapter {
         || (window.hiddenBackground
           && ds.points[hoverPointIndex].metadata[this.labelPointAccessor].toString() !== 'background'))) {
       let c = new THREE.Color(POINT_COLOR_HOVER);
-      if (window.properties) {
+      if (window.properties && window.properties[window.iteration]) {
         if (window.properties[window.iteration]?.length) {
           if (window.properties[window.iteration][hoverPointIndex] === 1) {
             c = new THREE.Color(POINT_COLOR_UNLABELED);
@@ -991,7 +998,7 @@ export class ProjectorScatterPlotAdapter {
     
     if (window.queryResPointIndices?.length) {
       if (window.queryResPointIndices?.indexOf(i) !== -1) {
-        return `👍 ${i}`
+        return `${i}`
       }
     }
     if(window.isAdjustingSel){
