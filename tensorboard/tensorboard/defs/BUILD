@@ -32,7 +32,6 @@ tb_proto_library(
     ],
 )
 
-exports_files(["web_test_python_stub.template.py"])
 
 exports_files(
     ["clutz.d.ts"],
