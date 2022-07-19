@@ -14,17 +14,6 @@ filegroup(
     ],
 )
 
-py_test(
-    name = "tb_proto_library_test",
-    srcs = ["tb_proto_library_test.py"],
-    deps = [
-        ":test_base_py_pb2",
-        ":test_base_py_pb2_grpc",
-        ":test_downstream_py_pb2",
-        ":test_downstream_py_pb2_grpc",
-        "//tensorboard:test",
-    ],
-)
 
 tb_proto_library(
     name = "test_base",

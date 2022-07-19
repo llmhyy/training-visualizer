@@ -15,8 +15,6 @@ http_archive(
 load("@io_bazel_rules_webtesting//web:repositories.bzl", "web_test_repositories")
 web_test_repositories(omit_bazel_skylib = True)
 
-load("@io_bazel_rules_webtesting//web:py_repositories.bzl", "py_repositories")
-py_repositories()
 
 http_archive(
     name = "io_bazel_rules_closure",

@@ -40,26 +40,6 @@ def tb_proto_library(
         plugin_language = "grpc",
     )
 
-    py_deps = [s + "_py_pb2" for s in deps] + [runtime]
-    native.py_library(
-        name = name + "_py_pb2",
-        srcs = outs_proto,
-        imports = [],
-        srcs_version = "PY2AND3",
-        deps = py_deps,
-        testonly = testonly,
-        visibility = visibility,
-    )
-    if has_services:
-        native.py_library(
-            name = name + "_py_pb2_grpc",
-            srcs = outs_grpc,
-            imports = [],
-            srcs_version = "PY2AND3",
-            deps = [name + "_py_pb2"] + py_deps,
-            testonly = testonly,
-            visibility = visibility,
-        )
 
 def _PyOuts(srcs, grpc):
     # Adapted from @com_google_protobuf//:protobuf.bzl.
