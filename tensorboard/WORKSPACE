@@ -7,7 +7,6 @@ http_archive(
     sha256 = "f89ca8e91ac53b3c61da356c685bf03e927f23b97b086cc593db8edc088c143f",
     urls = [
         # tag 0.3.1 resolves to commit afa8c4435ed8fd832046dab807ef998a26779ecb (2019-04-03 14:10:32 -0700)
-        "http://mirror.tensorflow.org/github.com/bazelbuild/rules_webtesting/releases/download/0.3.1/rules_webtesting.tar.gz",
         "https://github.com/bazelbuild/rules_webtesting/releases/download/0.3.1/rules_webtesting.tar.gz",
     ],
 )
@@ -21,7 +20,6 @@ http_archive(
     sha256 = "6a900831c1eb8dbfc9d6879b5820fd614d4ea1db180eb5ff8aedcb75ee747c1f",
     strip_prefix = "rules_closure-db4683a2a1836ac8e265804ca5fa31852395185b",
     urls = [
-        "http://mirror.tensorflow.org/github.com/bazelbuild/rules_closure/archive/db4683a2a1836ac8e265804ca5fa31852395185b.tar.gz",
         "https://github.com/bazelbuild/rules_closure/archive/db4683a2a1836ac8e265804ca5fa31852395185b.tar.gz",  # 2020-01-15
     ],
 )
@@ -37,7 +35,6 @@ http_archive(
     name = "build_bazel_rules_nodejs",
     sha256 = "f9e7b9f42ae202cc2d2ce6d698ccb49a9f7f7ea572a78fd451696d03ef2ee116",
     urls = [
-        "http://mirror.tensorflow.org/github.com/bazelbuild/rules_nodejs/releases/download/1.6.0/rules_nodejs-1.6.0.tar.gz",
         "https://github.com/bazelbuild/rules_nodejs/releases/download/1.6.0/rules_nodejs-1.6.0.tar.gz",
     ],
 )
@@ -64,7 +61,6 @@ http_archive(
     sha256 = "9dcfba04e4af896626f4760d866f895ea4291bc30bf7287887cefcf4707b6a62",
     strip_prefix = "rules_sass-1.26.3",
     urls = [
-        "http://mirror.tensorflow.org/github.com/bazelbuild/rules_sass/archive/1.26.3.zip",
         "https://github.com/bazelbuild/rules_sass/archive/1.26.3.zip",
     ],
 )
