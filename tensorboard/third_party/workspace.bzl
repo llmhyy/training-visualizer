@@ -22,7 +22,6 @@ load("@npm_bazel_typescript//:index.bzl", "ts_setup_workspace")
 load("//third_party:fonts.bzl", "tensorboard_fonts_workspace")
 load("//third_party:polymer.bzl", "tensorboard_polymer_workspace")
 load("//third_party:js.bzl", "tensorboard_js_workspace")
-load("//third_party:typings.bzl", "tensorboard_typings_workspace")
 
 def tensorboard_workspace(name = ""):
     """Add repositories needed to build TensorBoard.
@@ -32,7 +31,6 @@ def tensorboard_workspace(name = ""):
     """
     tensorboard_fonts_workspace()
     tensorboard_polymer_workspace()
-    tensorboard_typings_workspace()
     tensorboard_js_workspace()
 
     # Set up TypeScript toolchain.
@@ -82,24 +80,4 @@ def tensorboard_workspace(name = ""):
         windows_urls = [
             "https://chromedriver.storage.googleapis.com/2.38/chromedriver_win32.zip",
         ],
-    )
-
-    java_import_external(
-        name = "org_apache_commons_lang3",
-        jar_sha256 = "de2e1dcdcf3ef917a8ce858661a06726a9a944f28e33ad7f9e08bea44dc3c230",
-        jar_urls = [
-            "http://mirror.tensorflow.org/repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
-            "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
-        ],
-        licenses = ["notice"],  # Apache 2.0
-    )
-
-    java_import_external(
-        name = "org_apache_commons_text",
-        jar_sha256 = "df45e56549b63e0fe716953c9d43cc158f8bf008baf60498e7c17f3faa00a70b",
-        jar_urls = [
-            "http://mirror.tensorflow.org/repo1.maven.org/maven2/org/apache/commons/commons-text/1.6/commons-text-1.6.jar",
-            "https://repo1.maven.org/maven2/org/apache/commons/commons-text/1.6/commons-text-1.6.jar",
-        ],
-        licenses = ["notice"],  # Apache 2.0
     )
