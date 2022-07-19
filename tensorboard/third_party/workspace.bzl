@@ -17,7 +17,6 @@ TensorBoard external dependencies that can be loaded in WORKSPACE files.
 """
 
 load("@bazel_tools//tools/build_defs/repo:java.bzl", "java_import_external")
-load("@npm_bazel_typescript//:index.bzl", "ts_setup_workspace")
 load("//third_party:fonts.bzl", "tensorboard_fonts_workspace")
 load("//third_party:js.bzl", "tensorboard_js_workspace")
 
@@ -31,7 +30,6 @@ def tensorboard_workspace(name = ""):
     tensorboard_js_workspace()
 
     # Set up TypeScript toolchain.
-    ts_setup_workspace()
 
     # Protobuf's BUILD file depends on //external:six.
     native.bind(

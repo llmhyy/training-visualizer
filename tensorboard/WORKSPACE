@@ -11,8 +11,6 @@ http_archive(
     ],
 )
 
-load("@io_bazel_rules_webtesting//web:repositories.bzl", "web_test_repositories")
-web_test_repositories(omit_bazel_skylib = True)
 
 
 http_archive(
