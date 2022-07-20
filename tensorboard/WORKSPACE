@@ -51,14 +51,7 @@ load("@npm//:install_bazel_dependencies.bzl", "install_bazel_dependencies")
 
 install_bazel_dependencies()
 
-http_archive(
-    name = "io_bazel_rules_sass",
-    sha256 = "9dcfba04e4af896626f4760d866f895ea4291bc30bf7287887cefcf4707b6a62",
-    strip_prefix = "rules_sass-1.26.3",
-    urls = [
-        "https://github.com/bazelbuild/rules_sass/archive/1.26.3.zip",
-    ],
-)
+
 
 
 load("@bazel_skylib//lib:versions.bzl", "versions")
@@ -66,8 +59,6 @@ load("@bazel_skylib//lib:versions.bzl", "versions")
 # in our .travis.yml config.
 versions.check(minimum_bazel_version = "2.1.0")
 
-load("@io_bazel_rules_sass//:package.bzl", "rules_sass_dependencies")
-load("@io_bazel_rules_sass//:defs.bzl", "sass_repositories")
 
 
 
