@@ -906,7 +906,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       if (this.dataSet != null) {
         this.dataSet.stopTSNE();
       }
-      this.showPCA();
+      // this.showPCA();
     } else if (projection === 'tsne') {
       this.showTSNE();
     } else if (projection === 'umap') {
@@ -1024,7 +1024,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   @observe('pcaX', 'pcaY', 'pcaZ')
   private showPCAIfEnabled() {
     if (this.polymerChangesTriggerReprojection) {
-      this.showPCA();
+      // this.showPCA();
     }
   }
   private updateTotalVarianceMessage() {
@@ -1037,37 +1037,37 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     msg += (totalVariance * 100).toFixed(1) + '%.';
     (this.$$('#total-variance') as HTMLElement).textContent = msg;
   }
-  private showPCA() {
-    if (this.dataSet == null) {
-      return;
-    }
-    this.dataSet.projectPCA().then(() => {
-      // Polymer properties are 1-based.
-      const accessors = getProjectionComponents('pca', [
-        this.pcaX,
-        this.pcaY,
-        this.pcaZ,
-      ]);
-      const dimensionality = this.pcaIs3d ? 3 : 2;
-      const projection = new Projection(
-        'pca',
-        accessors,
-        dimensionality,
-        this.dataSet
-      );
-      this.projector.setProjection(projection);
-      let numComponents = Math.min(NUM_PCA_COMPONENTS, this.dataSet.dim[1]);
-      this.updateTotalVarianceMessage();
-      this.pcaComponents = util.range(numComponents).map((i) => {
-        let fracVariance = this.dataSet.fracVariancesExplained[i];
-        return {
-          id: i,
-          componentNumber: i + 1,
-          percVariance: (fracVariance * 100).toFixed(1),
-        };
-      });
-    });
-  }
+  // private showPCA() {
+  //   if (this.dataSet == null) {
+  //     return;
+  //   }
+  //   this.dataSet.projectPCA().then(() => {
+  //     // Polymer properties are 1-based.
+  //     const accessors = getProjectionComponents('pca', [
+  //       this.pcaX,
+  //       this.pcaY,
+  //       this.pcaZ,
+  //     ]);
+  //     const dimensionality = this.pcaIs3d ? 3 : 2;
+  //     const projection = new Projection(
+  //       'pca',
+  //       accessors,
+  //       dimensionality,
+  //       this.dataSet
+  //     );
+  //     this.projector.setProjection(projection);
+  //     let numComponents = Math.min(NUM_PCA_COMPONENTS, this.dataSet.dim[1]);
+  //     this.updateTotalVarianceMessage();
+  //     this.pcaComponents = util.range(numComponents).map((i) => {
+  //       let fracVariance = this.dataSet.fracVariancesExplained[i];
+  //       return {
+  //         id: i,
+  //         componentNumber: i + 1,
+  //         percVariance: (fracVariance * 100).toFixed(1),
+  //       };
+  //     });
+  //   });
+  // }
   private reprojectCustom() {
     if (
       this.centroids == null ||
@@ -1079,9 +1079,9 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       return;
     }
     const xDir = vector.sub(this.centroids.xRight, this.centroids.xLeft);
-    this.dataSet.projectLinear(xDir, 'linear-x');
+    // this.dataSet.projectLinear(xDir, 'linear-x');
     const yDir = vector.sub(this.centroids.yUp, this.centroids.yDown);
-    this.dataSet.projectLinear(yDir, 'linear-y');
+    // this.dataSet.projectLinear(yDir, 'linear-y');
     const accessors = getProjectionComponents('custom', ['x', 'y']);
     const projection = new Projection('custom', accessors, 2, this.dataSet);
     this.projector.setProjection(projection);

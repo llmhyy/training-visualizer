@@ -90,14 +90,6 @@ tf_web_library(
     path = "/tf-imports",
 )
 
-tf_web_library(
-    name = "numericjs",
-    srcs = [
-        "numericjs.html",
-        "@com_numericjs//:numeric.js",
-    ],
-    path = "/tf-imports",
-)
 
 tf_web_library(
     name = "graphlib",

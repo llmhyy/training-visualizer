@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-import numeric from 'numeric';
+// import numeric from 'numeric';
 import { UMAP } from 'umap-js';
 
 import { TSNE } from './bh_tsne';
@@ -382,64 +382,64 @@ export class DataSet {
     }
   }
   /** Projects the dataset onto a given vector and caches the result. */
-  projectLinear(dir: vector.Vector, label: string) {
-    this.projections[label] = true;
-    this.points.forEach((dataPoint) => {
-      dataPoint.projections[label] = vector.dot(dataPoint.vector, dir);
-    });
-  }
+  // projectLinear(dir: vector.Vector, label: string) {
+  //   this.projections[label] = true;
+  //   this.points.forEach((dataPoint) => {
+  //     dataPoint.projections[label] = vector.dot(dataPoint.vector, dir);
+  //   });
+  // }
   /** Projects the dataset along the top 10 principal components. */
-  projectPCA(): Promise<void> {
-    if (this.projections['pca-0'] != null) {
-      return Promise.resolve<void>(null);
-    }
-    return util.runAsyncTask('Computing PCA...', () => {
-      // Approximate pca vectors by sampling the dimensions.
-      let dim = this.points[0].vector.length;
-      let vectors = this.shuffledDataIndices.map((i) => this.points[i].vector);
-      if (dim > PCA_SAMPLE_DIM) {
-        vectors = vector.projectRandom(vectors, PCA_SAMPLE_DIM);
-      }
-      const sampledVectors = vectors.slice(0, PCA_SAMPLE_SIZE);
-      const { dot, transpose, svd: numericSvd } = numeric;
-      // numeric dynamically generates `numeric.div` and Closure compiler has
-      // incorrectly compiles `numeric.div` property accessor. We use below
-      // signature to prevent Closure from mangling and guessing.
-      const div = numeric['div'];
-      const scalar = dot(transpose(sampledVectors), sampledVectors);
-      const sigma = div(scalar, sampledVectors.length);
-      const svd = numericSvd(sigma);
-      const variances: number[] = svd.S;
-      let totalVariance = 0;
-      for (let i = 0; i < variances.length; ++i) {
-        totalVariance += variances[i];
-      }
-      for (let i = 0; i < variances.length; ++i) {
-        variances[i] /= totalVariance;
-      }
-      this.fracVariancesExplained = variances;
-      let U: number[][] = svd.U;
-      let pcaVectors = vectors.map((vector) => {
-        let newV = new Float32Array(NUM_PCA_COMPONENTS);
-        for (let newDim = 0; newDim < NUM_PCA_COMPONENTS; newDim++) {
-          let dot = 0;
-          for (let oldDim = 0; oldDim < vector.length; oldDim++) {
-            dot += vector[oldDim] * U[oldDim][newDim];
-          }
-          newV[newDim] = dot;
-        }
-        return newV;
-      });
-      for (let d = 0; d < NUM_PCA_COMPONENTS; d++) {
-        let label = 'pca-' + d;
-        this.projections[label] = true;
-        for (let i = 0; i < pcaVectors.length; i++) {
-          let pointIndex = this.shuffledDataIndices[i];
-          this.points[pointIndex].projections[label] = pcaVectors[i][d];
-        }
-      }
-    });
-  }
+  // projectPCA(): Promise<void> {
+  //   if (this.projections['pca-0'] != null) {
+  //     return Promise.resolve<void>(null);
+  //   }
+  //   return util.runAsyncTask('Computing PCA...', () => {
+  //     // Approximate pca vectors by sampling the dimensions.
+  //     let dim = this.points[0].vector.length;
+  //     let vectors = this.shuffledDataIndices.map((i) => this.points[i].vector);
+  //     if (dim > PCA_SAMPLE_DIM) {
+  //       vectors = vector.projectRandom(vectors, PCA_SAMPLE_DIM);
+  //     }
+  //     const sampledVectors = vectors.slice(0, PCA_SAMPLE_SIZE);
+  //     const { dot, transpose, svd: numericSvd } = numeric;
+  //     // numeric dynamically generates `numeric.div` and Closure compiler has
+  //     // incorrectly compiles `numeric.div` property accessor. We use below
+  //     // signature to prevent Closure from mangling and guessing.
+  //     const div = numeric['div'];
+  //     const scalar = dot(transpose(sampledVectors), sampledVectors);
+  //     const sigma = div(scalar, sampledVectors.length);
+  //     const svd = numericSvd(sigma);
+  //     const variances: number[] = svd.S;
+  //     let totalVariance = 0;
+  //     for (let i = 0; i < variances.length; ++i) {
+  //       totalVariance += variances[i];
+  //     }
+  //     for (let i = 0; i < variances.length; ++i) {
+  //       variances[i] /= totalVariance;
+  //     }
+  //     this.fracVariancesExplained = variances;
+  //     let U: number[][] = svd.U;
+  //     let pcaVectors = vectors.map((vector) => {
+  //       let newV = new Float32Array(NUM_PCA_COMPONENTS);
+  //       for (let newDim = 0; newDim < NUM_PCA_COMPONENTS; newDim++) {
+  //         let dot = 0;
+  //         for (let oldDim = 0; oldDim < vector.length; oldDim++) {
+  //           dot += vector[oldDim] * U[oldDim][newDim];
+  //         }
+  //         newV[newDim] = dot;
+  //       }
+  //       return newV;
+  //     });
+  //     for (let d = 0; d < NUM_PCA_COMPONENTS; d++) {
+  //       let label = 'pca-' + d;
+  //       this.projections[label] = true;
+  //       for (let i = 0; i < pcaVectors.length; i++) {
+  //         let pointIndex = this.shuffledDataIndices[i];
+  //         this.points[pointIndex].projections[label] = pcaVectors[i][d];
+  //       }
+  //     }
+  //   });
+  // }
   setDVIFilteredData(pointIndices: number[]) {
     // reset first
     for (let i = 0; i < this.points.length; i++) {
