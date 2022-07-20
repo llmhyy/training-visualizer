@@ -1,19 +1,9 @@
-load("//tensorboard/defs:defs.bzl", "tf_sass_library")
+load("//tensorboard/defs:defs.bzl")
 
 package(default_visibility = ["//tensorboard:internal"])
 
 licenses(["notice"])
 
-tf_sass_library(
-    name = "theme",
-    srcs = [
-        "_tb_palette.scss",
-        "_tb_theme.scss",
-    ],
-    deps = [
-        "//tensorboard/webapp:angular_material_theming",
-    ],
-)
 
 genrule(
     name = "inline_palette",

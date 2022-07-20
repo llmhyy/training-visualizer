@@ -1,5 +1,5 @@
 load("@npm_angular_bazel//:index.bzl", "ng_module")
-load("//tensorboard/defs:defs.bzl", "tf_js_binary", "tf_ng_web_test_suite", "tf_sass_binary", "tf_sass_library", "tf_svg_bundle")
+load("//tensorboard/defs:defs.bzl", "tf_js_binary", "tf_ng_web_test_suite", "tf_svg_bundle")
 load("//tensorboard/defs:web.bzl", "tf_web_library")
 load("//tensorboard/defs:vulcanize.bzl", "tensorboard_html_binary")
 
@@ -329,13 +329,6 @@ tf_svg_bundle(
     out = "icon_bundle.svg",
 )
 
-tf_sass_library(
-    name = "angular_material_theming",
-    srcs = [
-        "_angular_material_theming.scss",
-        "@npm//:node_modules/@angular/material/_theming.scss",
-    ],
-)
 
 # TODO(stephanwlee): remove the alias when all usages, internal, too,
 # //tensorboard/webapp:theme are removed.
