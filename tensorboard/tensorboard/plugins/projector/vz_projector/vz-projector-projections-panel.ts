@@ -74,6 +74,17 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   showForceCategoricalColorsCheckbox: boolean;
 
   @property({ type: Boolean })
+  _showFilter: boolean = false
+  @property({ type: String })
+  selectedArchitecture: string = 'ResNet-18'
+  @property({ type: String })
+  selectedLr: string = '0.01'
+  @property({ type: Number })
+  selectedTotalEpoch: number = 190
+
+
+
+  @property({ type: Boolean })
   pcaIs3d: boolean = true;
   @property({ type: Boolean })
   tSNEis3d: boolean = false;
@@ -149,7 +160,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   private zDropdown: HTMLElement;
   private iterationLabelTsne: HTMLElement;
   private totalIterationLabelDVI: HTMLElement;
-  private runUmapButton: HTMLButtonElement;
+
   private customProjectionXLeftInput: any; // ProjectorInput; type ommited
   private customProjectionXRightInput: any; // ProjectorInput; type ommited
   private customProjectionYUpInput: any; // ProjectorInput; type ommited
@@ -179,6 +190,18 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
 
   private iterationInput: number;
 
+  private learningRateList: string[];
+  private architectureList: string[];
+  private totalEpochList: number[]
+
+  private totalAccTrain: HTMLElement;
+  private totalAccTest: HTMLElement;
+
+  private baseTrainAcc: any;
+  private baseTestAcc: any;
+
+  private timer: any;
+
   initialize(projector: any) {
     this.polymerChangesTriggerReprojection = true;
     this.projector = projector;
@@ -193,6 +216,10 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
 
   ready() {
     super.ready();
+    this.learningRateList = ['0.1', '0.01', '0.001']
+    this.architectureList = ['ResNet-18', 'ResNet-34', 'VGG-18']
+    this.totalEpochList = [190, 200]
+    this._showFilter = window.sessionStorage.taskType == 'anormaly detection' && window.sessionStorage.username !== 'tutorial'
     this.zDropdown = this.$$('#z-dropdown') as HTMLElement;
     //this.runTsneButton = this.$$('.run-tsne') as HTMLButtonElement;
     //this.runTsneButton.innerText = 'Run';
@@ -204,6 +231,9 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.nextDVIButton = this.$$('.next-dvi') as HTMLButtonElement;
     this.jumpDVIButton = this.$$('.jump-dvi') as HTMLButtonElement;
     this.jumpDVIButton.disabled = true;
+
+    this.timer = null
+
     //this.nextDVIButton.disabled = true;
     //this.perplexitySlider = this.$$('#perplexity-slider') as HTMLInputElement;
     /*
@@ -213,9 +243,10 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.superviseFactorInput = this.$$(
       '#supervise-factor-slider'
     ) as HTMLInputElement;*/
+
     this.iterationLabelTsne = this.$$('.run-tsne-iter') as HTMLElement;
     this.totalIterationLabelDVI = this.$$('.dvi-total-iter') as HTMLElement;
-    this.runUmapButton = this.$$('#run-umap') as HTMLButtonElement;
+
 
     /*evaluation information*/
     this.nnTrain15 = this.$$('.nn_train_15') as HTMLElement;
@@ -229,6 +260,17 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     // this.invConfTest = this.$$('.inv_conf_test') as HTMLElement;
     this.accTrain = this.$$('.acc_train') as HTMLElement;
     this.accTest = this.$$('.acc_test') as HTMLElement;
+    this.totalAccTrain = this.$$('.total_acc_train') as HTMLElement;
+    this.totalAccTest = this.$$('.total_acc_test') as HTMLElement;
+    if (window.sessionStorage.taskType == 'anormaly detection') {
+      this.subjectModelPathEditorInput = window.sessionStorage.unormaly_content_path
+    } else {
+      this.subjectModelPathEditorInput = window.sessionStorage.normal_content_path
+    }
+    window.modelMath = this.subjectModelPathEditorInput
+    if (this.dataSet) {
+      this.dataSet.DVIsubjectModelPath = this.subjectModelPathEditorInput;
+    }
   }
   disablePolymerChangesTriggerReprojection() {
     this.polymerChangesTriggerReprojection = false;
@@ -236,30 +278,14 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   enablePolymerChangesTriggerReprojection() {
     this.polymerChangesTriggerReprojection = true;
   }
-  /*
-  private updateTSNEPerplexityFromSliderChange() {
-    if (this.perplexitySlider) {
-      this.perplexity = +this.perplexitySlider.value;
-    }
-    (this.$$('.tsne-perplexity span') as HTMLSpanElement).innerText =
-      '' + this.perplexity;
-  }*/
-  /*
-  private updateTSNELearningRateFromUIChange() {
-    if (this.learningRateInput) {
-      this.learningRate = Math.pow(10, +this.learningRateInput.value);
-    }
-    (this.$$('.tsne-learning-rate span') as HTMLSpanElement).innerText =
-      '' + this.learningRate;
-  }
-  private updateTSNESuperviseFactorFromUIChange() {
-    (this.$$('.tsne-supervise-factor span') as HTMLSpanElement).innerText =
-      '' + this.superviseFactor;
-    if (this.dataSet) {
-      this.dataSet.setSuperviseFactor(this.superviseFactor);
-    }
-  }*/
+
   private subjectModelPathEditorInputChange() {
+    window.modelMath = this.subjectModelPathEditorInput
+    if (window.sessionStorage.taskType == 'anormaly detection') {
+      window.sessionStorage.setItem('unormaly_content_path', this.subjectModelPathEditorInput)
+    } else {
+      window.sessionStorage.setItem('normal_content_path', this.subjectModelPathEditorInput)
+    }
     this.dataSet.DVIsubjectModelPath = this.subjectModelPathEditorInput;
   }
   private resolutionEditorInputChange() {
@@ -282,12 +308,16 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
     this.invNnTest15.innerText = ''+evaluation.inv_nn_test_15;
     this.invNnTest30.innerText = ''+evaluation.inv_nn_test_30;
     */
-    this.invAccTrain.innerText = '' + evaluation.inv_acc_train;
-    this.invAccTest.innerText = '' + evaluation.inv_acc_test;
+    this.invAccTrain.innerText = '' + evaluation.ppr_train;
+    this.invAccTest.innerText = '' + evaluation.ppr_test;
     //  this.invConfTrain.innerText = ''+evaluation.inv_conf_train;
     //  this.invConfTest.innerText = ''+evaluation.inv_conf_test;
     this.accTrain.innerText = '' + evaluation.acc_train;
     this.accTest.innerText = '' + evaluation.acc_test;
+    this.totalAccTest.innerText = '' + Number(evaluation.test_acc * 100).toFixed(2) + '%';
+    this.totalAccTrain.innerText = '' + Number(evaluation.train_acc * 100).toFixed(2) + '%';
+    this.baseTrainAcc = evaluation.train_acc
+    this.baseTestAcc = evaluation.test_acc
   }
   private setupUIControls() {
     {
@@ -393,6 +423,10 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
            * get filter index
            */
           //get search predicates or indices
+          if (iteration == null && evaluation == null) {
+            this.nextDVIButton.disabled = false;
+            return
+          }
           var filterIndices: number[];
           filterIndices = []
           if (this.temporalStatus) {
@@ -427,8 +461,6 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
         });
     });
     this.jumpDVIButton.addEventListener('click', () => {
-      const msgId = logging.setModalMessage('loading...');
-      this.jumpDVIButton.disabled = true;
       if (this.iterationInput > this.dataSet.tSNETotalIter || this.iterationInput < 1) {
         logging.setErrorMessage("Invaild Input!", null);
         this.jumpDVIButton.disabled = false;
@@ -436,50 +468,13 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       } else if (this.iterationInput == this.dataSet.tSNEIteration) {
         logging.setWarningMessage("current iteration!");
         this.jumpDVIButton.disabled = false;
-        logging.setModalMessage(null, msgId);
+        // logging.setModalMessage(null, msgId);
         return;
       }
-      this.nextDVIButton.disabled = true;
-      this.previousDVIButton.disabled = true;
-      this.dataSet.projectDVI(this.iterationInput, this.projector.inspectorPanel.currentPredicate,
-        (iteration: number | null, evaluation: any, newSelection: any[], indices: number[], totalIter?: number) => {
-          /**
-           * get filter index
-           */
-          //get search predicates or indices
-          var filterIndices: number[];
-          filterIndices = []
-          if (this.temporalStatus) {
-            //search predicate
-            this.projector.inspectorPanel.filterIndices = indices;
-          }
-          //indices
-          filterIndices = this.projector.inspectorPanel.filterIndices;
-          
-          this.projector.dataSet.setDVIFilteredData(filterIndices);
-
-          if (iteration != null) {
-            this.iterationLabelTsne.innerText = '' + iteration;
-            this.totalIterationLabelDVI.innerText = '' + totalIter;
-            this.updateEvaluationInformation(evaluation);
-            // this.projector.notifyProjectionPositionsUpdated(newSelection);
-            this.projector.notifyProjectionPositionsUpdated();
-            this.projector.onProjectionChanged();
-            this.projector.onIterationChange(iteration);
-            if (this.dataSet.tSNEIteration > 1) {
-              this.previousDVIButton.disabled = false;
-            }
-            if (this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
-              this.nextDVIButton.disabled = false;
-            }
-          } else {
-            this.nextDVIButton.disabled = false;
-            this.projector.onProjectionChanged();
-          }
-          logging.setModalMessage(null, msgId);
-          this.jumpDVIButton.disabled = false;
-        });
+      this.jumpTo(this.iterationInput)
     });
+
+
 
     /*
     this.nextDVIButton.addEventListener('click', () => {
@@ -541,10 +536,75 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       (inputs[i] as HTMLElement).style.fontSize = '14px';
     }
   }
-  retrainBySelections(iteration: number, selections: number[]) {
+
+  jumpTo(iterationInput) {
+    const msgId = logging.setModalMessage('loading...');
+    this.jumpDVIButton.disabled = true;
+    this.nextDVIButton.disabled = true;
+    this.previousDVIButton.disabled = true;
+    this.dataSet.projectDVI(iterationInput, this.projector.inspectorPanel.currentPredicate,
+      (iteration: number | null, evaluation: any, newSelection: any[], indices: number[], totalIter?: number) => {
+        /**
+         * get filter index
+         */
+        //get search predicates or indices
+        var filterIndices: number[];
+        filterIndices = []
+        if (this.temporalStatus) {
+          //search predicate
+          this.projector.inspectorPanel.filterIndices = indices;
+        }
+        //indices
+        filterIndices = this.projector.inspectorPanel.filterIndices;
+
+        this.projector.dataSet.setDVIFilteredData(filterIndices);
+
+        if (iteration != null) {
+          this.iterationLabelTsne.innerText = '' + iteration;
+          this.totalIterationLabelDVI.innerText = '' + totalIter;
+          this.updateEvaluationInformation(evaluation);
+          // this.projector.notifyProjectionPositionsUpdated(newSelection);
+          this.projector.notifyProjectionPositionsUpdated();
+          this.projector.onProjectionChanged();
+          this.projector.onIterationChange(iteration);
+          if (this.dataSet.tSNEIteration > 1) {
+            this.previousDVIButton.disabled = false;
+          }
+          if (this.dataSet.tSNETotalIter != this.dataSet.tSNEIteration) {
+            this.nextDVIButton.disabled = false;
+          }
+        } else {
+          this.nextDVIButton.disabled = false;
+          this.projector.onProjectionChanged();
+        }
+        logging.setModalMessage(null, msgId);
+        this.jumpDVIButton.disabled = false;
+      });
+  }
+  retrainBySelections(iteration: number, selections: number[], rejections: number[]) {
 
     const msgId = logging.setModalMessage('training and loading...')
-    this.dataSet.reTrainByDVI(iteration, selections,
+
+    // Get the tensor.
+    let percent = 0
+    this.timer = window.setInterval(() => {
+      percent = percent+0.1;
+      logging.setModalMessage(
+        `training and loading... ${Number(percent.toFixed(1))}%`,
+      msgId);
+      if(percent > 98){
+        clearInterval(this.timer)
+      }
+    }, 250)
+
+    // let xhr = new XMLHttpRequest();
+    // xhr.open('GET', tensorsPath);
+    // xhr.responseType = 'arraybuffer';
+    // xhr.onprogress = (ev) => {
+
+
+    // };
+    this.dataSet.reTrainByDVI(iteration, selections, rejections,
       (iteration: number | null, evaluation: any, new_selection: any[], indices: number[], totalIter?: number) => {
         /**
          * get filter index
@@ -568,6 +628,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
           this.projector.notifyProjectionPositionsUpdated();
           this.projector.onProjectionChanged();
           this.projector.onIterationChange(iteration);
+          this.projector.initialTree()
         } else {
           this.projector.onProjectionChanged();
         }
@@ -575,6 +636,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
           this.previousDVIButton.disabled = false;
         }
         logging.setModalMessage(null, msgId);
+        window.clearInterval(this.timer)
         this.nextDVIButton.disabled = false;
         this.jumpDVIButton.disabled = false;
       });
@@ -764,6 +826,103 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
   _DVITemporalStatusObserver() {
 
   }
+  @observe('selectedArchitecture')
+  // TODO
+  _selectedArchitectureChanged() {
+    this.updateTrainTestRessult()
+  }
+  @observe('selectedTotalEpoch')
+  _selectedTotalEpochChanged() {
+    window.selectedTotalEpoch = this.selectedTotalEpoch
+    this.updateTrainTestRessult()
+  }
+  @observe('selectedLr')
+  _selectedLrChanged() {
+    // TODO
+    this.updateTrainTestRessult()
+  }
+
+  updateTrainTestRessult() {
+    if (this.projector) {
+      if (this.selectedArchitecture == 'ResNet-18' && this.selectedLr == '0.01') {
+        this.projector.hiddenOrShowScatter('')
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '' + Number(this.baseTrainAcc * 100).toFixed(2) + '%';
+          this.totalAccTest.innerText = '' + Number(this.baseTestAcc * 100).toFixed(2) + '%';
+        }
+        this.projector.initialTree()
+      }
+      else if (this.selectedArchitecture == 'ResNet-18' && this.selectedLr == '0.1' && this.selectedTotalEpoch == 190) {
+        this.projector.hiddenOrShowScatter('hidden')
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '95.66%';
+          this.totalAccTest.innerText = '78.23%';
+        }
+        this.projector.initialTree(this.selectedTotalEpoch)
+      }
+      else if (this.selectedArchitecture == 'ResNet-18' && this.selectedLr == '0.001' && this.selectedTotalEpoch == 190) {
+        this.projector.hiddenOrShowScatter('hidden')
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '94.22%';
+          this.totalAccTest.innerText = '78.26%';
+        }
+        this.projector.initialTree(this.selectedTotalEpoch)
+      }
+      else if (this.selectedArchitecture == 'ResNet-34' && this.selectedLr == '0.01' && this.selectedTotalEpoch == 190) {
+        this.projector.hiddenOrShowScatter('hidden')
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '98.23%';
+          this.totalAccTest.innerText = '78.61%';
+        }
+        this.projector.initialTree(this.selectedTotalEpoch)
+
+      } else if (this.selectedArchitecture == 'VGG-18' && this.selectedLr == '0.01' && this.selectedTotalEpoch == 190) {
+        this.projector.hiddenOrShowScatter('hidden')
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '96.38%';
+          this.totalAccTest.innerText = '79.93%';
+        }
+        this.projector.initialTree(this.selectedTotalEpoch)
+      } else if (this.selectedTotalEpoch == 200 && !(this.selectedArchitecture == 'ResNet-18' && this.selectedLr == '0.01')) {
+        this.projector.hiddenOrShowScatter('hidden')
+        this.projector.initialTree(this.selectedTotalEpoch, true)
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '-' + '%';
+          this.totalAccTest.innerText = '-' + '%';
+        }
+      } else {
+        this.projector.hiddenOrShowScatter('hidden')
+        this.projector.initialTree(this.selectedTotalEpoch, true)
+        if (this.totalAccTrain) {
+          this.totalAccTrain.innerText = '-' + '%';
+          this.totalAccTest.innerText = '-' + '%';
+        }
+      }
+    }
+  }
+  // @observe('selectedTotalEpoch')
+  // _selectedTotalChanged() {
+  //   // TODO
+  //   if (this.projector) {
+  //     if (this.projector) {
+  //       if (this.selectedArchitecture == 'ResNet-18' && this.selectedLr == '0.01' && this.selectedTotalEpoch == 190) {
+
+  //         this.projector.hiddenOrShowScatter('')
+  //         if (this.totalAccTrain) {
+  //           this.totalAccTrain.innerText = '' + Number(this.baseTrainAcc * 100).toFixed(2) + '%';
+  //           this.totalAccTest.innerText = '' + Number(this.baseTestAcc * 100).toFixed(2) + '%';
+  //         }
+
+  //       } else {
+  //         this.projector.hiddenOrShowScatter('hidden')
+  //         // if (this.totalAccTrain) {
+  //           this.totalAccTrain.innerText = '-' + Number((this.baseTrainAcc) * 100).toFixed(2) + '%';
+  //           this.totalAccTest.innerText = '-' + Number((this.baseTestAcc) * 100).toFixed(2) + '%';
+  //         // }
+  //       }
+  //     }
+  //   }
+  // }
   metadataChanged(spriteAndMetadata: SpriteAndMetadataInfo, metadataFile?: string) {
     // Project by options for custom projections.
     if (metadataFile != null) {
@@ -867,7 +1026,7 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       // and those based on metadata columns.
       standardColorOption.push({ name: 'Metadata', isSeparator: true });
     }
-    this.colorOptions = standardColorOption.concat(metadataColorOption);
+    this.colorOptions = metadataColorOption.concat(standardColorOption);
   }
   public showTab(id: ProjectionType) {
     this.currentProjection = id;
@@ -909,8 +1068,6 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       // this.showPCA();
     } else if (projection === 'tsne') {
       this.showTSNE();
-    } else if (projection === 'umap') {
-      this.showUmap();
     } else if (projection === 'custom') {
       if (this.dataSet != null) {
         this.dataSet.stopTSNE();
@@ -941,86 +1098,8 @@ class ProjectionsPanel extends LegacyElementMixin(PolymerElement) {
       this.projector.notifyProjectionPositionsUpdated();
     }
   }
-  private runTSNE() {
-    let projectionChangeNotified = false;
-    this.runTsneButton.innerText = 'Stop';
-    this.runTsneButton.disabled = true;
-    this.pauseTsneButton.innerText = 'Pause';
-    this.pauseTsneButton.disabled = true;
-    this.previousDVIButton.disabled = true;
-    this.nextDVIButton.disabled = true;
-    //this.perturbTsneButton.disabled = false;
-    this.dataSet.projectTSNE(
-      this.perplexity,
-      this.learningRate,
-      this.tSNEis3d ? 3 : 2,
-      (iteration: number, dataset?: DataSet, totalIter?: number) => {
-        if (iteration != null) {
-          this.runTsneButton.disabled = false;
-          this.pauseTsneButton.disabled = false;
-          this.iterationLabelTsne.innerText = '' + iteration;
-          this.totalIterationLabelDVI.innerText = '' + totalIter;
-          this.projector.notifyProjectionPositionsUpdated();
-          if (!projectionChangeNotified && this.dataSet.projections['tsne']) {
-            this.projector.onProjectionChanged();
-            projectionChangeNotified = true;
-          }
-        } else {
-          this.runTsneButton.innerText = 'Re-run';
-          this.runTsneButton.disabled = false;
-          this.pauseTsneButton.innerText = 'Pause';
-          this.pauseTsneButton.disabled = true;
-          //this.perturbTsneButton.disabled = true;
-          this.previousDVIButton.disabled = false;
-          this.projector.onProjectionChanged();
-        }
-      }
-    );
-  }
-  private showUmap() {
-    const dataSet = this.dataSet;
-    if (dataSet == null) {
-      return;
-    }
-    const accessors = getProjectionComponents('umap', [
-      0,
-      1,
-      this.umapIs3d ? 2 : null,
-    ]);
-    const dimensionality = this.umapIs3d ? 3 : 2;
-    const projection = new Projection(
-      'umap',
-      accessors,
-      dimensionality,
-      dataSet
-    );
-    this.projector.setProjection(projection);
-    if (!this.dataSet.hasUmapRun) {
-      this.runUmap();
-    } else {
-      this.projector.notifyProjectionPositionsUpdated();
-    }
-  }
-  private runUmap() {
-    let projectionChangeNotified = false;
-    this.runUmapButton.disabled = true;
-    const nComponents = this.umapIs3d ? 3 : 2;
-    const nNeighbors = this.umapNeighbors;
-    this.dataSet.projectUmap(nComponents, nNeighbors, (iteration: number, bg: string) => {
-      if (iteration != null) {
-        this.runUmapButton.disabled = false;
-        this.projector.notifyProjectionPositionsUpdated();
-        if (!projectionChangeNotified && this.dataSet.projections['umap']) {
-          this.projector.onProjectionChanged();
-          projectionChangeNotified = true;
-        }
-      } else {
-        this.runUmapButton.innerText = 'Re-run';
-        this.runUmapButton.disabled = false;
-        this.projector.onProjectionChanged();
-      }
-    });
-  }
+
+
   @observe('pcaX', 'pcaY', 'pcaZ')
   private showPCAIfEnabled() {
     if (this.polymerChangesTriggerReprojection) {

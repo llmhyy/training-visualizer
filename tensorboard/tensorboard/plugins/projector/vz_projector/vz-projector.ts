@@ -36,6 +36,7 @@ declare global {
     customMetadata: any,
 
     queryResPointIndices: any,
+    alQueryResPointIndices: any,
     previousIndecates: any,
     previousAnormalIndecates: any,
     queryResAnormalIndecates: any,
@@ -45,7 +46,22 @@ declare global {
     alSuggestScoreList: any,
     previousHover: number,
 
-    allResPositions: any
+    allResPositions: any,
+    modelMath: string,
+    tSNETotalIter: number,
+    taskType: string,
+    selectedStack: any,
+    ipAddress: string,
+    d3: any,
+    treejson: any,
+
+    rejectIndicates: any,
+    acceptIndicates: any,
+
+    acceptInputList: any,
+    rejectInputList: any,
+    flagindecatesList: any,
+    selectedTotalEpoch: number
   }
 }
 
@@ -137,6 +153,9 @@ class Projector
   @property({ type: Boolean })
   eventLogging: boolean;
 
+  @property({ type: Object })
+  metadataStyle: any
+
   /**
    * DVI properties
    */
@@ -150,7 +169,12 @@ class Projector
   showUnlabeled: boolean = true;
 
   @property({ type: Boolean })
-  showTesting: boolean = true;
+  showTesting: boolean = false;
+  @property({ type: Boolean })
+  _showNotAvaliable: boolean = false
+
+  @property({type: Boolean})
+  showUnlabeledCheckbox: boolean = true
 
   // The working subset of the data source's original data set.
   dataSet: DataSet;
@@ -194,6 +218,12 @@ class Projector
 
   private timer: any;
 
+  private intervalFlag: boolean
+
+  private registered: boolean
+
+
+
 
 
 
@@ -228,30 +258,350 @@ class Projector
     this.bookmarkPanel = this.$['bookmark-panel'] as any; // BookmarkPanel
     this.metadataCard = this.$['metadata-card'] as any; // MetadataCard
     this.statusBar = this.$$('#status-bar') as HTMLDivElement;
-    this.goDownBtn = this.$$('#cavasGoDown') as HTMLElement;
-    this.goUpBtn = this.$$('#cavasGoUp') as HTMLElement;
-    this.goLeftBtn = this.$$('#cavasGoLeft') as HTMLElement;
-    this.goRightBtn = this.$$('#cavasGoRight') as HTMLElement;
     this.helpBtn = this.$$('#help-3d-icon') as HTMLElement;
     this.inspectorPanel.initialize(this, this as ProjectorEventContext);
     this.projectionsPanel.initialize(this);
     this.bookmarkPanel.initialize(this, this as ProjectorEventContext);
     this.setupUIControls();
     this.initializeDataProvider();
+    this.d3loader()
     this.iteration = 0;
     this.currentIteration = 0
 
     this.showlabeled = true
     this.showUnlabeled = true
-    this.showTesting = true
+    this.showTesting = false
+
+    this.registered = false
+
+    this.showUnlabeledCheckbox = window.sessionStorage.taskType === 'active learning'
+
+
+    this.intervalFlag = true
+    this._showNotAvaliable = false
+
+    this.metadataStyle = {
+      left: '320px',
+      top: '120px'
+    }
 
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    await fetch("standalone_projector_config.json", { method: 'GET' })
-      .then(response => response.json())
-      .then(data => { this.DVIServer = data.DVIServerIP + ":" + data.DVIServerPort; })
+    // await fetch("standalone_projector_config.json", { method: 'GET' })
+    //   .then(response => response.json())
+    //   .then(data => { this.DVIServer = data.DVIServerIP + ":" + data.DVIServerPort; })
+    this.DVIServer = window.sessionStorage.ipAddress
   };
+  d3loader() {
+    let that = this
+    new Promise((resolve) => {
+      let url = "https://d3js.org/d3.v5.min.js"
+      // let url = "http://127.0.0.1/d3-min.js"
+      let script = document.createElement('script')
+      script.setAttribute('src', url)
+
+      script.onload = () => {
+        resolve(true)
+        that.initialTree()
+      }
+      document.body.append(script)
+    })
+  }
+
+
+  async initialTree(only?:number,needRemove?:boolean) {
+    // this.d3loader()
+
+    const d3 = window.d3;
+
+    let svgDom: any = this.$$("#mysvggg")
+
+    while (svgDom?.firstChild) {
+      svgDom.removeChild(svgDom.lastChild);
+    }
+    if(needRemove){
+      return
+    }
+
+    console.log('isOnly?',only)
+
+    
+
+    // document.body.append(svgDom)
+
+    let headers = new Headers();
+    await fetch(`http://${window.sessionStorage.ipAddress}/get_itertaion_structure?path=${window.modelMath}`, {
+      method: 'POST',
+      headers: headers,
+      mode: 'cors'
+    })
+      .then(response => response.json())
+      .then(res => {
+        if(only){
+          res.structure = [{value:only,name:only,pid:""}]
+        }
+        res.structure.length = window.selectedTotalEpoch
+        window.treejson = res.structure
+
+        let data = res.structure
+        if(only){
+
+        }
+
+        function tranListToTreeData(arr) {
+          const newArr = []
+          // 1. 构建一个字典：能够快速根据id找到对象。
+          const map = {}
+          // {
+          //   '01': {id:"01", pid:"",   "name":"老王",children: [] },
+          //   '02': {id:"02", pid:"01", "name":"小张",children: [] },
+          // }
+          arr.forEach(item => {
+            // 为了计算方便，统一添加children
+            item.children = []
+            // 构建一个字典
+            const key = item.value
+            map[key] = item
+          })
+
+          // 2. 对于arr中的每一项
+          arr.forEach(item => {
+            const parent = map[item.pid]
+            if (parent) {
+              //    如果它有父级，把当前对象添加父级元素的children中
+              parent.children.push(item)
+            } else {
+              //    如果它没有父级（pid:''）,直接添加到newArr
+              newArr.push(item)
+            }
+          })
+
+          return newArr
+        }
+        data = tranListToTreeData(data)[0]
+        var margin = 50;
+        var svg = d3.select(svgDom);
+        var width = svg.attr("width");
+        var height = svg.attr("height");
+
+        //create group
+        var g = svg.append("g")
+          .attr("transform", "translate(" + margin + "," + 20 + ")");
+
+
+        //create layer layout
+        var hierarchyData = d3.hierarchy(data)
+          .sum(function (d, i) {
+            return d.value;
+          });
+        //    nodes attributes:
+        //        node.data - data.
+        //        node.depth - root is 0.
+        //        node.height -  leaf node is 0.
+        //        node.parent - parent id, root is null.
+        //        node.children.
+        //        node.value - total value current node and descendants;
+
+        //create tree
+        let len = res.structure.length
+        let svgWidth = len * 35
+        if (window.sessionStorage.taskType === 'active learning') {
+          svgWidth = 1000
+        }
+        // svgWidth = 1000
+        console.log('svgWid', len, svgWidth)
+        svgDom.style.width = svgWidth + 200
+
+        var tree = d3.tree()
+          .size([100, svgWidth])
+          .separation(function (a, b) {
+            return (a.parent == b.parent ? 1 : 2) / a.depth;
+          });
+
+        //init
+        var treeData = tree(hierarchyData)
+
+        //line node
+        var nodes = treeData.descendants();
+        var links = treeData.links();
+
+        //line
+        var link = d3.linkHorizontal()
+          .x(function (d) {
+            return d.y;
+          }) //linkHorizontal
+          .y(function (d) {
+            return d.x;
+          });
+
+
+        //path
+        g.append('g')
+          .selectAll('path')
+          .data(links)
+          .enter()
+          .append('path')
+          .attr('d', function (d, i) {
+            var start = {
+              x: d.source.x,
+              y: d.source.y
+            };
+            var end = {
+              x: d.target.x,
+              y: d.target.y
+            };
+            return link({
+              source: start,
+              target: end
+            });
+          })
+          .attr('stroke', '#452d8a')
+          .attr('stroke-width', 1)
+          .attr('fill', 'none');
+
+
+        //创建节点与文字分组
+        var gs = g.append('g')
+          .selectAll('.g')
+          .data(nodes)
+          .enter()
+          .append('g')
+          .attr('transform', function (d, i) {
+            return 'translate(' + d.y + ',' + d.x + ')';
+          });
+
+        //绘制文字和节点
+        gs.append('circle')
+          .attr('r', 8)
+          .attr('fill', function (d, i) {
+            return d.data.value == window.iteration ? 'orange' : '#452d8a'
+          })
+          .attr('stroke-width', 1)
+          .attr('stroke', function (d, i) {
+            return d.data.value == window.iteration ? 'orange' : '#452d8a'
+          })
+
+        gs.append('text')
+          .attr('x', function (d, i) {
+            return d.children ? 5 : 10;
+          })
+          .attr('y', function (d, i) {
+            return d.children ? -20 : -5;
+          })
+          .attr('dy', 10)
+          .text(function (d, i) {
+            if (window.sessionStorage.taskType === 'active learning') {
+              return `${d.data.value}|${d.data.name}`;
+            } else {
+              return `${d.data.value}`;
+            }
+
+          })
+      })
+    let that = this
+    setTimeout(() => {
+      let list = svgDom.querySelectorAll("circle");
+      for (let i = 0; i <= list.length; i++) {
+        let c = list[i]
+        if (c) {
+          c.style.cursor = "pointer"
+          if(!only){
+            c.addEventListener('click', (e: any) => {
+              if (e.target.nextSibling.innerHTML != window.iteration) {
+                let value = e.target.nextSibling.innerHTML.split("|")[0]
+                that.projectionsPanel.jumpTo(Number(value))
+                window.sessionStorage.setItem('acceptIndicates', "")
+                window.sessionStorage.setItem('rejectIndicates', "")
+              }
+            })
+          }
+        }
+      }
+    })
+  }
+
+  readyregis() {
+    let el: any = this.$$('#metadata-card')
+    if (!el) {
+      return
+    }
+    let that = this
+    this.registered = true
+    el.onmousedown = function (e: any) {
+      e = e || window.event;
+      document.body.style.cursor = 'move'
+
+      // 初始位置
+      let offleft = Number(that.metadataStyle.left.replace('px', '')) || 0;
+      let offTop = Number(that.metadataStyle.top.replace('px', '')) || 0;
+      // 鼠标点击位置
+      let startX = e.clientX;
+      let startY = e.clientY;
+
+      el.setCapture && el.setCapture();
+
+
+      const handler = function (event: any) {
+        event = event || window.event;
+
+        // mouse stop position
+        let endX = event.clientX;
+        let endY = event.clientY;
+
+        // distance
+        let moveX = endX - startX;
+        let moveY = endY - startY;
+
+        // final position
+        let lastX = offleft + moveX;
+        let lastY = offTop + moveY;
+
+        //boundry
+        if (
+          lastX >
+          document.documentElement.clientWidth - el.clientWidth - 20
+        ) {
+          lastX = document.documentElement.clientWidth - el.clientWidth - 20;
+        } else if (lastX < 20) {
+          lastX = 0;
+        }
+
+        if (
+          lastY >
+          document.documentElement.clientWidth - el.clientWidth - 20
+        ) {
+          lastY =
+            document.documentElement.clientHeight - el.clientHeight - 20;
+        } else if (lastY < 20) {
+          lastY = 0;
+        }
+
+        el.style.left = lastX + "px";
+        el.style.top = lastY + "px";
+        that.metadataStyle = {
+          left: lastX + "px",
+          top: lastY + "px"
+        }
+      };
+      document.addEventListener('mousemove', handler, false);
+      document.addEventListener(
+        'mouseup',
+        () => {
+          document.body.style.cursor = 'default'
+          document.removeEventListener('mousemove', handler);
+        },
+        false,
+      );
+      //
+      document.onmouseup = function () {
+        document.ontouchmove = null;
+        //@ts-ignore
+        document.releaseCapture && document.releaseCapture();
+      };
+      return false;
+    }
+  }
 
   @observe('showlabeled')
   _labeledChanged() {
@@ -318,7 +668,7 @@ class Projector
         window.nowShowIndicates = indicates
         // this.projector.filterDataset(window.nowShowIndicates)
       } else {
-        ///隐藏labeled
+
         for (let i = 0; i < window.properties[window.iteration].length; i++) {
           if (window.properties[window.iteration][i] !== 2 && window.nowShowIndicates.indexOf(i) !== -1) {
             indicates.push(i)
@@ -331,8 +681,31 @@ class Projector
   }
 
   onIterationChange(num: number) {
+    window.sessionStorage.setItem('iteration', String(num))
     // window.iteration = num;
+    let indicates = []
     this.iteration = num;
+    if (!window.isAnimatating) {
+      if (this.showTesting === false) {
+        for (let i = 0; i < window.properties[window.iteration].length; i++) {
+          if (window.properties[window.iteration][i] !== 2 && window.nowShowIndicates.indexOf(i) !== -1) {
+            indicates.push(i)
+          }
+        }
+        window.nowShowIndicates = indicates
+      }
+      this.filterDataset(window.nowShowIndicates)
+
+    }
+    if (this.inspectorPanel) {
+      if (window.sessionStorage.taskType === 'active learning' && window.iteration !== 1) {
+        this.inspectorPanel.updateDisabledStatues(true)
+      } else {
+        this.inspectorPanel.updateDisabledStatues(false)
+      }
+
+    }
+    this.initialTree()
   }
 
   setSelectedLabelOption(labelOption: string) {
@@ -396,6 +769,22 @@ class Projector
       this.inspectorPanel.metadataChanged(spriteAndMetadata);
       this.projectionsPanel.metadataChanged(spriteAndMetadata);
       this.dataPanel.metadataChanged(spriteAndMetadata, metadataFile);
+      //reset
+      if (window.sessionStorage.iteration) {
+        this.projectionsPanel.jumpTo(Number(window.sessionStorage.iteration))
+      } else {
+        this.projectionsPanel.jumpTo(Number(1))
+      }
+      //reset
+      if (window.sessionStorage.acceptIndicates) {
+        window.acceptIndicates = window.sessionStorage.acceptIndicates.split(",").map(parseFloat)
+      }
+      if (window.sessionStorage.rejectIndicates) {
+        window.rejectIndicates = window.sessionStorage.rejectIndicates.split(",").map(parseFloat)
+      }
+      if (window.sessionStorage.customSelection) {
+        window.customSelection = window.sessionStorage.customSelection.split(",").map(parseFloat)
+      }
     } else {
       this.setCurrentDataSet(null);
       // this.projectorScatterPlotAdapter
@@ -423,6 +812,7 @@ class Projector
     if (metadataFile != null) {
       this.metadataFile = metadataFile;
     }
+
     this.dataSet.spriteAndMetadataInfo = spriteAndMetadata;
     this.projectionsPanel.metadataChanged(spriteAndMetadata);
     this.inspectorPanel.metadataChanged(spriteAndMetadata);
@@ -468,7 +858,8 @@ class Projector
     this.projectorScatterPlotAdapter.updateScatterPlotPositions();
     this.projectorScatterPlotAdapter.updateScatterPlotAttributes(filter);
     this.projectorScatterPlotAdapter.updateBackground()
-    this.adjustSelectionAndHover(util.range(selectionSize));
+    // this.adjustSelectionAndHover(util.range(selectionSize));
+
     if (window.isAdjustingSel) {
       // this.boundingSelectionBtn.classList.add('actived')
       this.setMouseMode(MouseMode.AREA_SELECT)
@@ -505,7 +896,17 @@ class Projector
   ///
   setDynamicNoisy() {
     // this.setDynamicStop()
-
+    if (!window.customSelection) {
+      window.customSelection = []
+    }
+    if (!window.queryResAnormalCleanIndecates) {
+      window.queryResAnormalCleanIndecates = []
+    }
+    let indecates = window.queryResAnormalCleanIndecates.concat(window.customSelection)
+    if (indecates && indecates.length) {
+      this.filterDataset(indecates)
+    }
+    // this.filterDataset(this.selectedPointIndices)
     this.currentIteration = window.iteration
 
     let current = 1
@@ -519,32 +920,50 @@ class Projector
     }
     current = Number(interationList[0])
     let count = 0
-    this.timer = window.setInterval(() => {
-      this.inspectorPanel.updateCurrentPlayEpoch(current)
-      window.iteration = current;
-      for (let i = 0; i < this.dataSet.points.length; i++) {
-        const point = this.dataSet.points[i];
-        if (!this.selectedPointIndices.length || this.selectedPointIndices.indexOf(i) !== -1) {
-          point.projections['tsne-0'] = positions[current][i][0];
-          point.projections['tsne-1'] = positions[current][i][1];
-          point.projections['tsne-2'] = 0;
+    if (this.intervalFlag) {
+      this.intervalFlag = false
+      this.timer = window.setInterval(() => {
+
+        this.inspectorPanel.updateCurrentPlayEpoch(current)
+        window.iteration = current;
+        let length = this.dataSet.points.length
+        if (length === 60002) {
+          let point1 = this.dataSet.points[length - 2];
+          let point2 = this.dataSet.points[length - 1];
+          point1.projections['tsne-0'] = window.allResPositions.grid[current][0]
+          point1.projections['tsne-1'] = window.allResPositions.grid[current][1]
+          point2.projections['tsne-0'] = window.allResPositions.grid[current][2]
+          point2.projections['tsne-1'] = window.allResPositions.grid[current][3]
+          // point.projections['tsne-0'] = 
         }
-      }
-      // this.dataSet.updateProjection(current)
-      this.projectorScatterPlotAdapter.updateScatterPlotPositions();
-      this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
-      this.updateBackgroundImg();
-      this.onIterationChange(current);
-      // this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
-      this.projectorScatterPlotAdapter.render()
-      if (count < interationList.length - 1) {
-        current = interationList[++count]
-      } else {
-        current = interationList[0]
-        count = 0
-        this.setDynamicStop()
-      }
-    }, 1500)
+
+        for (let i = 0; i < this.dataSet.points.length; i++) {
+          const point = this.dataSet.points[i];
+          if (!window.customSelection || !window.customSelection.length || window.customSelection.indexOf(i) !== -1 || window.queryResAnormalCleanIndecates?.indexOf(i) !== -1) {
+            point.projections['tsne-0'] = positions[current][i][0];
+            point.projections['tsne-1'] = positions[current][i][1];
+            point.projections['tsne-2'] = 0;
+          }
+        }
+        // this.dataSet.updateProjection(current)
+        this.projectorScatterPlotAdapter.updateScatterPlotPositions();
+        this.projectorScatterPlotAdapter.updateScatterPlotAttributes();
+        this.updateBackgroundImg();
+        this.onIterationChange(current);
+        // this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
+        this.projectorScatterPlotAdapter.render()
+        if (count == interationList.length - 1) {
+          this.inspectorPanel.playAnimationFinished()
+          this.setDynamicStop()
+          current = interationList[0]
+          count = 0
+
+        } else {
+          current = interationList[++count]
+        }
+      }, 1200)
+    }
+
   }
 
   updatePosByIndicates(current: number) {
@@ -564,12 +983,28 @@ class Projector
     this.onIterationChange(current);
   }
   setDynamicStop() {
-    console.log('this.timer', this.timer)
-    if (this.timer) {
+    window.isAnimatating = false
+    if (this.timer && !this.intervalFlag) {
       window.clearInterval(this.timer)
+      this.intervalFlag = true
+      this.resetFilterDataset()
     }
-    
+    let end = setInterval(function () { }, 10000);
+    for (let i = 1; i <= end; i++) {
+      clearInterval(i);
+    }
+
     this.iteration = this.currentIteration
+    let length = this.dataSet.points.length
+    if (length === 60002) {
+      let point1 = this.dataSet.points[length - 2];
+      let point2 = this.dataSet.points[length - 1];
+      point1.projections['tsne-0'] = window.allResPositions.grid[this.iteration][0]
+      point1.projections['tsne-1'] = window.allResPositions.grid[this.iteration][1]
+      point2.projections['tsne-0'] = window.allResPositions.grid[this.iteration][2]
+      point2.projections['tsne-1'] = window.allResPositions.grid[this.iteration][3]
+      // point.projections['tsne-0'] = 
+    }
     window.iteration = this.currentIteration
     this.updatePosByIndicates(window.iteration)
   }
@@ -579,19 +1014,44 @@ class Projector
   }
 
   refresh() {
+    console.log('rreefff')
     // this.projectorScatterPlotAdapter.scatterPlot.render()
-    this.metadataCard.updateCustomList(this.dataSet.points)
-    this.projectorScatterPlotAdapter.scatterPlot.render()
+    this.metadataCard.updateCustomList(this.dataSet.points, this as ProjectorEventContext)
+    this.metadataCard.updateRejectList(this.dataSet.points, this as ProjectorEventContext)
+    // this.projectorScatterPlotAdapter.scatterPlot.render()
+    this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
+    this.projectorScatterPlotAdapter.render()
+  }
+  removecustomInMetaCard() {
+    this.metadataCard.updateCustomList(this.dataSet.points, this as ProjectorEventContext)
+    this.metadataCard.updateRejectList(this.dataSet.points, this as ProjectorEventContext)
+    // this.inspectorPanel.refreshSearchResult()
+    this.inspectorPanel.updateSessionStorage()
+    this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
+    this.projectorScatterPlotAdapter.render()
   }
   /**
    * Used by clients to indicate that a selection has occurred.
    */
-  notifySelectionChanged(newSelectedPointIndices: number[], selectMode?: boolean, selectionType?: string) {
-
-    if (selectionType === 'isALQuery' || selectionType === 'normal' || selectionType === 'isAnormalyQuery') {
-      window.customSelection = []
+  async notifySelectionChanged(newSelectedPointIndices: number[], selectMode?: boolean, selectionType?: string) {
+    if (!this.registered) {
+      this.readyregis()
+    }
+    if (!window.acceptIndicates) {
+      window.acceptIndicates = []
+    }
+    if (!window.rejectIndicates) {
+      window.rejectIndicates = []
+    }
+    window.customSelection = window.acceptIndicates.concat(window.rejectIndicates)
+    if (selectionType === 'isALQuery' || selectionType === 'normal' || selectionType === 'isAnormalyQuery' || selectionType === 'boundingbox') {
+      // window.customSelection = []
       window.queryResPointIndices = newSelectedPointIndices
-      this.metadataCard.updateCustomList(this.dataSet.points)
+      if (selectionType === 'isALQuery') {
+        window.alQueryResPointIndices = newSelectedPointIndices
+      } else {
+        window.alQueryResPointIndices = []
+      }
     }
     if (selectionType === 'isShowSelected') {
       for (let i = 0; i < window.previousIndecates?.length; i++) {
@@ -602,35 +1062,38 @@ class Projector
         }
         // }
       }
-      this.metadataCard.updateCustomList(this.dataSet.points)
+      this.metadataCard.updateCustomList(this.dataSet.points, this as ProjectorEventContext)
+      this.metadataCard.updateRejectList(this.dataSet.points, this as ProjectorEventContext)
       this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
       this.projectorScatterPlotAdapter.render()
       return
     }
-    if (selectionType === 'boundingbox' && window.isAdjustingSel) {
-      if (!window.customSelection) {
-        window.customSelection = []
-      }
-      for (let i = 0; i < newSelectedPointIndices.length; i++) {
-        let check: any = window.checkboxDom[newSelectedPointIndices[i]]
-        if (window.customSelection.indexOf(newSelectedPointIndices[i]) < 0) {
-          window.customSelection.push(newSelectedPointIndices[i]);
+    if (selectionType === 'boundingbox') {
+      let headers = new Headers();
+      headers.append('Content-Type', 'application/json');
+      headers.append('Accept', 'application/json');
 
-          if (check) {
-            check.checked = true
-          }
-
-        } else {
-          let index = window.customSelection.indexOf(newSelectedPointIndices[i])
-          window.customSelection.splice(index, 1)
-          if (check) {
-            check.checked = false
-          }
-        }
-      }
-      this.metadataCard.updateCustomList(this.dataSet.points)
+      await fetch(`http://${this.DVIServer}/boundingbox_record`, {
+        method: 'POST',
+        mode: 'cors',
+        body: JSON.stringify({
+           "username": window.sessionStorage.username,
+        }),
+        headers: headers,
+      }).then(()=>{
+          console.log('123323')
+      })
+      window.alSuggestLabelList = []
+      window.alSuggestScoreList = []
+      window.queryResPointIndices = newSelectedPointIndices
+      this.selectedPointIndices = newSelectedPointIndices
+      window.alQueryResPointIndices = []
+      this.inspectorPanel.refreshSearchResByList(newSelectedPointIndices)
       this.projectorScatterPlotAdapter.updateScatterPlotAttributes()
       this.projectorScatterPlotAdapter.render()
+      this.selectionChangedListeners.forEach((l) =>
+        l(this.selectedPointIndices, [])
+      );
       return
     }
 
@@ -736,14 +1199,7 @@ class Projector
             index: newSelectedPointIndices[0],
             dist: 0
           };
-        if (window.isAnimatating !== true) {
-          // this.dataSet.getSpriteImage(this.selectedPointIndices[0], (imgData: any) => {
-          //   let src = 'data:image/png;base64,' + imgData.imgUrl
-          //   this.metadataCard.updateMetadata(
-          //     this.dataSet.points[newSelectedPointIndices[0]].metadata, src, this.dataSet.points[newSelectedPointIndices[0]]
-          //   );
-          // })
-        }
+
       } else {
         this.metadataCard.updateMetadata(null);
       }
@@ -757,6 +1213,7 @@ class Projector
       this.metadataCard.updateMetadata(null);
       return
     }
+    console.log('bububububuuu here')
     this.metadataCard.updateMetadata(
       this.dataSet.points[indices].metadata, src, this.dataSet.points[indices]
     );
@@ -787,9 +1244,8 @@ class Projector
   notifyHoverOverPoint(pointIndex: number) {
     this.hoverListeners.forEach((l) => l(pointIndex));
     let timeNow = new Date().getTime()
-    if (this.timer === null || timeNow - this.timer > 1000) {
+    if (this.timer === null || timeNow - this.timer > 10) {
       if (window.iteration && pointIndex !== undefined && pointIndex !== null && window.previousHover !== pointIndex) {
-        console.log('get img')
         this.timer = timeNow
         this.updateMetaByIndices(pointIndex)
         window.previousHover = pointIndex
@@ -961,7 +1417,10 @@ class Projector
       }
       // if(window.scene.children)
       if (window.scene.children[2] && window.scene.children[2].type === 'Mesh') {
-        window.scene.children[2].visible = !window.hiddenBackground
+        for (let i = 2; i < window.scene.children.length; i++) {
+          window.scene.children[i].visible = !window.hiddenBackground
+        }
+
       }
       this.projectorScatterPlotAdapter.scatterPlot.render()
       // this.projectorScatterPlotAdapter.scatterPlot.hiddenBackground(
@@ -981,23 +1440,6 @@ class Projector
     let triangleModeBtn = this.$$("#triangleMode");
     triangleModeBtn.addEventListener('click', () => {
       this.projectorScatterPlotAdapter.setTriangleMode((triangleModeBtn as any).active)
-    })
-
-    this.goDownBtn.addEventListener('click', (e) => {
-      // this.scattor
-      this.projectorScatterPlotAdapter.scatterPlot.goDown()
-    })
-
-    this.goUpBtn.addEventListener('click', (e) => {
-      this.projectorScatterPlotAdapter.scatterPlot.goUp()
-    })
-
-    this.goLeftBtn.addEventListener('click', (e) => {
-      this.projectorScatterPlotAdapter.scatterPlot.goLeft()
-    })
-
-    this.goRightBtn.addEventListener('click', (e) => {
-      this.projectorScatterPlotAdapter.scatterPlot.goRight()
     })
 
     window.addEventListener('resize', () => {
@@ -1067,7 +1509,8 @@ class Projector
   onProjectionChanged(projection?: Projection) {
     this.dataPanel.projectionChanged(projection);
     this.updateBackgroundImg()
-    this.inspectorPanel.clearQueryResList()
+    this.inspectorPanel.clearQueryResList();
+    this.notifySelectionChanged([]);
     this.projectorScatterPlotAdapter.render();
   }
   setProjection(projection: Projection) {
@@ -1082,6 +1525,21 @@ class Projector
   // }
   notifyProjectionPositionsUpdated() {
     this.projectorScatterPlotAdapter.notifyProjectionPositionsUpdated();
+    this.metadataCard.updateCustomList(this.dataSet.points, this as ProjectorEventContext)
+    this.metadataCard.updateRejectList(this.dataSet.points, this as ProjectorEventContext)
+  }
+
+  hiddenOrShowScatter(type: string) {
+    let dom = this.$$('#scatter') as HTMLElement
+    dom.style.visibility = type
+    if (type === '') {
+      this._showNotAvaliable = false
+    } else {
+      this._showNotAvaliable = true
+    }
+  }
+  refreshnoisyBtn(){
+    this.inspectorPanel.refreshBtnStyle()
   }
   /**
    * Gets the current view of the embedding and saves it as a State object.
@@ -1189,13 +1647,14 @@ class Projector
     fetch(`http://${this.DVIServer}/query`, {
       method: 'POST',
       body: JSON.stringify({
-        "predicates": dummyCurrPredicates, "path": this.dataSet.DVIsubjectModelPath,
-        "iteration": iteration
+        "predicates": dummyCurrPredicates, "content_path": this.dataSet.DVIsubjectModelPath,
+        "iteration": iteration,"username": window.sessionStorage.username
       }),
       headers: headers,
       mode: 'cors'
     }).then(response => response.json()).then(data => {
       const indices = data.selectedPoints;
+      window.alSuggestLabelList = []
       logging.setModalMessage(null, msgId);
       callback(indices);
     }).catch(error => {
@@ -1214,7 +1673,13 @@ class Projector
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     fetch(`http://${this.DVIServer}/all_result_list`, {
-      method: 'GET',
+      method: 'POST',
+      body: JSON.stringify({
+        "iteration_start": 1,
+        "iteration_end": 2,
+        "content_path": this.dataSet.DVIsubjectModelPath,
+        "username": window.sessionStorage.username
+      }),
       headers: headers,
       mode: 'cors'
     }).then(response => response.json()).then(data => {
@@ -1237,25 +1702,43 @@ class Projector
     fetch(`http://${this.DVIServer}/query`, {
       method: 'POST',
       body: JSON.stringify({
-        "predicates": predicates, "path": this.dataSet.DVIsubjectModelPath,
-        "iteration": iteration
+        "predicates": predicates, "content_path": this.dataSet.DVIsubjectModelPath,
+        "iteration": iteration, "username": window.sessionStorage.username
       }),
       headers: headers,
       mode: 'cors'
     }).then(response => response.json()).then(data => {
       const indices = data.selectedPoints;
       this.inspectorPanel.filteredPoints = indices;
+      window.alSuggestLabelList = []
     }).catch(error => {
       logging.setErrorMessage('querying for indices');
     });
   }
   // active learning
-  queryByAL(iteration: number, strategy: string, budget: number, currentIndices: number[], previousIndices: number[],
+  queryByAL(iteration: number, strategy: string, budget: number, acceptIndicates: number[], rejectIndicates: number[],isRecommend:boolean,
     callback: (indices: any, scores: any, labels: any) => void) {
     const msgId = logging.setModalMessage('Querying...');
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
+   
+   
+    let accIndicates = []
+    if(window.acceptIndicates){
+      accIndicates = window.acceptIndicates.filter((item, i, arr) => {
+        //函数自身返回的是一个布尔值，只当返回值为true时，当前元素才会存入新的数组中。            
+        return window.properties[window.iteration][item] === 1
+      })
+    }
+    let rejIndicates = []
+    if(window.rejectIndicates){
+      rejIndicates = window.rejectIndicates.filter((item, i, arr) => {
+        //函数自身返回的是一个布尔值，只当返回值为true时，当前元素才会存入新的数组中。            
+        return window.properties[window.iteration][item] === 1
+      })
+    }
+
     fetch(`http://${this.DVIServer}/al_query`, {
       method: 'POST',
       body: JSON.stringify({
@@ -1263,8 +1746,10 @@ class Projector
         "strategy": strategy,
         "budget": budget,
         "content_path": this.dataSet.DVIsubjectModelPath,
-        "currentIndices": currentIndices,
-        "previousIndices": previousIndices
+        "accIndices": accIndicates,
+        "rejIndices": rejIndicates,
+        "isRecommend":isRecommend,
+        "username": window.sessionStorage.username
       }),
       headers: headers,
       mode: 'cors'
@@ -1274,15 +1759,29 @@ class Projector
       const scores = data.scores
       logging.setModalMessage(null, msgId);
 
-      for (let i = 0; i < currentIndices.length; i++) {
-        if (window.previousIndecates.indexOf(currentIndices[i]) === -1) {
-          window.previousIndecates.push(currentIndices[i])
-        }
-      }
-      function func(a, b) {
-        return a - b;
-      }
-      window.previousIndecates.sort(func)
+      // if (currentIndices && currentIndices.length) {
+      //   for (let i = 0; i < currentIndices.length; i++) {
+      //     if (window.previousIndecates.indexOf(currentIndices[i]) === -1) {
+      //       window.previousIndecates.push(currentIndices[i])
+      //     }
+      //   }
+      //   function func(a, b) {
+      //     return a - b;
+      //   }
+      //   window.previousIndecates.sort(func)
+      // } else {
+      //   for (let i = 0; i < window.customSelection.length; i++) {
+      //     if (window.previousIndecates.indexOf(window.customSelection[i]) === -1) {
+      //       window.previousIndecates.push(window.customSelection[i])
+      //     }
+      //   }
+      //   function func(a, b) {
+      //     return a - b;
+      //   }
+      //   window.previousIndecates.sort(func)
+      // }
+
+
 
       callback(indices, scores, labels);
     }).catch(error => {
@@ -1291,21 +1790,45 @@ class Projector
     });
   }
   // anormaly detection
-  queryAnormalyStrategy(strategy: string, budget: number, cls: number, currentIndices: number[], previousIndices: number[],
+  queryAnormalyStrategy(budget: number, cls: number, currentIndices: number[], comfirm_info: any[], accIndicates: number[], rejIndicates: number[], strategy: string,isRecommend:boolean,
     callback: (indices: any, cleanIndices?: any) => void) {
     const msgId = logging.setModalMessage('Querying...');
     let headers = new Headers();
+    if (!accIndicates) {
+      accIndicates = []
+    }
+    if (!rejIndicates) {
+      rejIndicates = []
+    }
+    let accIn = []
+    // if(window.acceptIndicates){
+    //   accIndicates = window.acceptIndicates.filter((item, i, arr) => {
+    //     //函数自身返回的是一个布尔值，只当返回值为true时，当前元素才会存入新的数组中。            
+    //     return window.properties[window.iteration][item] === 1
+    //   })
+    // }
+    // let rejIn = []
+    // if(window.rejectIndicates){
+    //   rejIndicates = window.rejectIndicates.filter((item, i, arr) => {
+    //     //函数自身返回的是一个布尔值，只当返回值为true时，当前元素才会存入新的数组中。            
+    //     return window.properties[window.iteration][item] === 1
+    //   })
+    // }
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     fetch(`http://${this.DVIServer}/anomaly_query`, {
       method: 'POST',
       body: JSON.stringify({
-        "strategy": strategy,
         "budget": budget,
         "cls": cls,
-        "currentIndices": currentIndices,
-        "previousIndices": previousIndices,
+        "indices": currentIndices,
         "content_path": this.dataSet.DVIsubjectModelPath,
+        "comfirm_info": comfirm_info,
+        "accIndices": accIndicates,
+        "rejIndices": rejIndicates,
+        "strategy": strategy,
+        "username": window.sessionStorage.username,
+        "isRecommend":isRecommend
       }),
       headers: headers,
       mode: 'cors'

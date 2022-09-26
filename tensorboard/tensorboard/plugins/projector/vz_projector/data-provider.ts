@@ -100,6 +100,9 @@ export function retrieveTensorAsBytes(
   tensorsPath: string,
   callback: (ds: DataSet) => void
 ) {
+  if(!window.sessionStorage.taskType){
+     return
+  }
   // Get the tensor.
   logging.setModalMessage('Fetching tensor values...', TENSORS_MSG_ID);
   let xhr = new XMLHttpRequest();
@@ -409,7 +412,7 @@ export function retrieveSpriteAndMetadataInfo(
         if (request.readyState === 4) {
           if (request.status === 200) {
             // The metadata was successfully retrieved. Parse it.
-            console.log('request after parse',parseMetadata(request.response))
+            // console.log('request after parse',parseMetadata(request.response))
             resolve(parseMetadata(request.response));
           } else {
             // The response contains the error message, but we must convert it

@@ -19,6 +19,5 @@
   ],
   "modelCheckpointPath": "Demo datasets",
   "DVIServerIP": "localhost",
-  "DVIServerPort": "5001",
-  "DVIsubjectModelPath": "/Users/zhangyifan/Downloads/toy_model/resnet18_cifar10"
+  "DVIServerPort": "5001"
 }

@@ -50,16 +50,19 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   dataSet: DataSet;
 
   @property({ type: String })
-  selectedStratergy: string;
+  selectedStratergy: string = 'Interest potential';
 
   @property({ type: String })
   selectedAnormalyStratergy: string;
 
-  @property({type: Number})
-  selectedAnormalyClass: number
+  @property({ type: Number })
+  selectedAnormalyClass: number = 0;
 
   @property({ type: Number })
   budget: number
+
+  @property({ type: Number })
+  anomalyRecNum: number
 
   @property({ type: Number })
   suggestKNum: number
@@ -88,6 +91,9 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Number })
   confidenceThresholdTo: number
 
+  @property({ type: Boolean })
+  disabledAlExBase: boolean = false
+
 
   // @property({ type: Number })
   // epochFrom: number
@@ -101,7 +107,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Number })
   currentPlayedEpoch: number
 
-  @property({ type: Number})
+  @property({ type: Number })
   totalEpoch: number
 
   @property({ type: Boolean })
@@ -113,11 +119,47 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   @property({ type: Boolean })
   isCollapsed: boolean = false;
 
-  @property({ type: Boolean})
+  @property({ type: Boolean })
   checkAllQueryRes: boolean = false
 
   @property({ type: String })
   collapseIcon: string = 'expand-less';
+
+  @property({ type: Boolean })
+  showAnomaly: boolean = false
+
+  @property({ type: Boolean })
+  isControlGroup: boolean = false
+
+  @property({ type: Boolean })
+  shownormal: boolean = false
+
+  @property({ type: String })
+  queryResultListTitle: string = 'Query Result List'
+
+  @property({ type: Boolean })
+  showCheckAllQueryRes: boolean = true
+
+  @property({ type: Boolean })
+  showMoreRecommend: boolean = true
+
+
+  @property({ type: Boolean })
+  showPlayAndStop: boolean = false
+  
+
+  @property({ type: Number })
+  moreRecommednNum: number = 10
+
+  @property({ type: Boolean })
+  accAll: boolean = false
+
+  @property({ type: Boolean })
+  rejAll: boolean = false
+
+
+  @property({ type: Boolean })
+  showUnlabeledChecked: boolean = true
 
 
   distFunc: DistanceFunction;
@@ -132,8 +174,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private searchBox: any; // ProjectorInput; type omitted b/c LegacyElement
 
   private queryByStrategtBtn: HTMLButtonElement;
+  private moreRecommend: HTMLButtonElement;
   private queryAnomalyBtn: HTMLButtonElement;
   private showSelectionBtn: HTMLButtonElement;
+  private noisyshowSelectionBtn: HTMLButtonElement;
 
   private boundingSelectionBtn: HTMLButtonElement;
   private isAlSelecting: boolean;
@@ -164,13 +208,19 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
   private searchFields: string[];
   private statergyList: string[];
   private anormalyStatergyList: string[];
-  private classOptionsList:any;
+  private classOptionsList: any;
   private boundingBoxSelection: number[];
   private currentBoundingBoxSelection: number[];
   private projectorScatterPlotAdapter: ProjectorScatterPlotAdapter;
 
+  private rejAllRadio: any;
+  private accAllRadio: any;
+
 
   private currentFilterType: string
+
+  private labelMap: any
+
 
 
   ready() {
@@ -180,9 +230,25 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
 
     this.currentFilterType = 'normal'
 
+
+
+    this.showAnomaly = window.sessionStorage.taskType == 'anormaly detection'
+    this.shownormal = window.sessionStorage.taskType == 'active learning' || window.taskType == 'active learning'
+    this.isControlGroup = window.sessionStorage.isControlGroup == 'true'
+
+    // this.showUnlabeledChecked = window.sessionStorage.taskType == 'active learning' || window.taskType == 'active learning'
+
+    // if (window.sessionStorage.taskType == 'active learning') {
+    //   this.moreRecommednNum = 100
+    // }
     this.queryByStrategtBtn = this.$$('.query-by-stratergy') as HTMLButtonElement;
-    this.showSelectionBtn = this.$$('.show-selection') as HTMLButtonElement
+    this.moreRecommend = this.$$('.query-by-sel-btn') as HTMLButtonElement;
+    this.showSelectionBtn = this.$$('.show-selection') as HTMLButtonElement;
+    this.noisyshowSelectionBtn = this.$$('.noisy-show-selection') as HTMLButtonElement
     this.queryAnomalyBtn = this.$$('.query-anomaly') as HTMLButtonElement;
+
+    this.accAllRadio = this.$$('#accAllRadio') as HTMLElement;
+    this.rejAllRadio = this.$$('#rejAllRadio') as HTMLElement;
     // this.boundingSelectionBtn = this.$$('.bounding-selection') as HTMLButtonElement;
 
     // this.resetFilterButton = this.$$('.reset-filter') as HTMLButtonElement;
@@ -216,33 +282,50 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     // this.selectinMessage.innerText = "0 seleted.";
     this.confidenceThresholdFrom = 0
     this.confidenceThresholdTo = 1
+
+    this.disabledAlExBase = false
     // this.epochFrom = 1
     // this.epochTo = 1
     this.showTrace = false
     this.checkAllQueryRes = false
 
-    this.budget = 1000
+    this.budget = 10
+    this.anomalyRecNum = 10
     this.suggestKNum = 10
   }
   initialize(projector: any, projectorEventContext: ProjectorEventContext) {
     this.projector = projector;
     this.projectorEventContext = projectorEventContext;
     this.setupUI(projector);
+    this.labelMap = {
+      "0": "plane",
+      "1": "car",
+      "2": "bird",
+      "3": "cat",
+      "4": "deer",
+      "5": "dog",
+      "6": "frog",
+      "7": "horse",
+      "8": "ship",
+      "9": "truck"
+    }
     projectorEventContext.registerSelectionChangedListener(
       (selection, neighbors) => this.updateInspectorPane(selection, neighbors)
     );
     // TODO change them based on metadata fields
-    this.searchFields = ["type", "label", "new_selection"]
+    this.searchFields = ["type", "label"]
     // active learning statergy
-    this.statergyList = ["random", "coreset", 'bayesianLeastConfidence', "LeastConfidence"]
+    this.statergyList = ["Interest potential", "Random"]
     // anormaly detection statergy
     this.anormalyStatergyList = ['anormalyStageone', 'anormalyStageTwo', 'anormalyStageThree']
     // anormaly detcttion classes
-    this.classOptionsList = [{value:0,label:'airplane'},{value:1,label:'car'},{value:2,label:'bird'},{value:3,label:'cat'},{value:4,label:'deer'},{value:5,label:'dog'},{value:6,label:'frog'},{value:7,label:'horse'},{value:8,label:'ship'},{value:9,label:'truck'}]
+    this.classOptionsList = [{ value: 0, label: 'airplane' }, { value: 1, label: 'car' }, { value: 2, label: 'bird' }, { value: 3, label: 'cat' }, { value: 4, label: 'deer' }, { value: 5, label: 'dog' }, { value: 6, label: 'frog' }, { value: 7, label: 'horse' }, { value: 8, label: 'ship' }, { value: 9, label: 'truck' }]
     // TODO read real points length from dataSet
     for (let i = 0; i < 60000; i++) {
       this.filterIndices.push(i);
     }
+    this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+    this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
   }
   /** Updates the nearest neighbors list in the inspector. */
   private updateInspectorPane(
@@ -270,7 +353,10 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.isCollapsed = !this.isCollapsed;
     this.set('collapseIcon', this.isCollapsed ? 'expand-more' : 'expand-less');
   }
-
+  refreshBtnStyle(){
+    this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+    this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+  }
   restoreUIFromBookmark(bookmark: State) {
     this.enableResetFilterButton(bookmark.filteredPoints != null);
   }
@@ -322,6 +408,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.updateNeighborsList();
   }
 
+  @observe('accAll')
+  _accAllRes() {
+    if (this.accAll) {
+      console.log(12333)
+    }
+
+  }
+
+
+
   @observe('showTrace')
   _refreshScatterplot() {
     if (this.showTrace) {
@@ -331,14 +427,14 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     }
   }
   @observe('checkAllQueryRes')
-  _checkAll(){
-    if(this.checkAllQueryRes){
-      if(window.checkboxDom){
-        if(window.queryResPointIndices && window.queryResPointIndices.length){
-          for(let i =0;i<window.queryResPointIndices.length;i++){
+  _checkAll() {
+    if (this.checkAllQueryRes) {
+      if (window.checkboxDom) {
+        if (window.queryResPointIndices && window.queryResPointIndices.length) {
+          for (let i = 0; i < window.queryResPointIndices.length; i++) {
             let index = window.queryResPointIndices[i]
-            if(window.customSelection.indexOf(index) === -1){
-              if(window.checkboxDom[index]){
+            if (window.customSelection.indexOf(index) === -1) {
+              if (window.checkboxDom[index]) {
                 window.checkboxDom[index].checked = true
               }
               window.customSelection.push(index)
@@ -347,8 +443,24 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
           this.projectorEventContext.refresh()
         }
       }
-    }else{
-
+    } else {
+      if (window.checkboxDom) {
+        if (window.queryResPointIndices && window.queryResPointIndices.length) {
+          for (let i = 0; i < window.queryResPointIndices.length; i++) {
+            let index = window.queryResPointIndices[i]
+            if (window.customSelection.indexOf(index) !== -1) {
+              let m = window.customSelection.indexOf(index)
+              if (window.checkboxDom[index]) {
+                window.checkboxDom[index].checked = false
+              }
+              window.customSelection.splice(m, 1)
+              this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+              this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+            }
+          }
+          this.projectorEventContext.refresh()
+        }
+      }
     }
   }
 
@@ -431,10 +543,21 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       (this.$$(lastContext) as HTMLDivElement).style.display = null;
     }
   }
-  clearQueryResList(){
+  clearQueryResList() {
     this.updateSearchResults([])
   }
+  refreshSearchResult() {
+    this.updateSearchResults(this.queryIndices)
+  }
+
+  refreshSearchResByList(list: any) {
+    this.updateSearchResults(list)
+  }
   private async updateSearchResults(indices: number[]) {
+    if (this.accAllRadio?.checked || this.rejAllRadio?.checked) {
+      this.accAllRadio.checked = false
+      this.rejAllRadio.checked = false
+    }
     const container = this.$$('.matches-list') as HTMLDivElement;
     const list = container.querySelector('.list') as HTMLDivElement;
     list.textContent = '';
@@ -446,104 +569,369 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
     this.limitMessage.style.display =
       indices.length <= LIMIT_RESULTS ? 'none' : null;
     indices = indices.slice(0, LIMIT_RESULTS);
-    // const msgId = logging.setModalMessage('Fetching sprite image...');
+    this.moreRecommend = container.querySelector('.query-by-sel-btn') as HTMLButtonElement
 
-    let DVIServer = '';
-    let basePath = ''
+    // const msgId = logging.setModalMessage('Fetching sprite image...');
+    if (this.moreRecommend) {
+
+      this.moreRecommend.onclick = () => {
+        if (!window.acceptIndicates || !window.rejectIndicates) {
+          logging.setErrorMessage('Please confirm some selection first');
+          return
+        }
+        if (window.sessionStorage.taskType === 'active learning') {
+          // let accIndices = []
+          // let rejIndices = []
+          // if (!window.previousIndecates) {
+          //   window.previousIndecates = []
+          // }
+          // if (!window.acceptIndicates) {
+          //   window.acceptIndicates = []
+          // } else {
+          //   for (let i = 0; i < window.acceptIndicates.length; i++) {
+          //     if (window.previousIndecates.indexOf(window.customSelection[i]) == -1) {
+          //       accIndices.push(window.customSelection[i])
+          //     } else {
+          //       previoustIIndices.push(window.customSelection[i])
+          //     }
+          //   }
+          // }
+          this.queryByAl(this.projector, window.acceptIndicates, window.rejectIndicates, this.moreRecommednNum, false)
+        } else if (window.sessionStorage.taskType === 'anormaly detection') {
+          let confirmInfo: any[] = []
+          for (let i = 0; i < window.queryResAnormalIndecates.length; i++) {
+            let value = Boolean(window.customSelection.indexOf(window.queryResAnormalIndecates[i]) !== -1)
+            confirmInfo.push(value)
+            if (value && window.previousIndecates.indexOf(window.queryResAnormalIndecates[i]) === -1) {
+              window.previousIndecates.push(window.queryResAnormalIndecates[i])
+            }
+          }
+          let AnormalyStrategy = 'Feedback'
+          // if is control group
+          if (window.sessionStorage.isControlGroup == 'true') {
+            AnormalyStrategy = 'TBSampling'
+          }
+          this.projector.queryAnormalyStrategy(
+
+            Number(this.moreRecommednNum), this.selectedAnormalyClass, window.queryResAnormalIndecates, confirmInfo, window.acceptIndicates, window.rejectIndicates, AnormalyStrategy, false,
+            (indices: any, cleansIndices: any) => {
+              if (indices != null) {
+                // this.queryIndices = indices;
+                if (this.queryIndices.length == 0) {
+                  this.searchBox.message = '0 matches.';
+                } else {
+                  this.searchBox.message = `${this.queryIndices.length} matches.`;
+                }
+
+                window.queryResAnormalIndecates = indices
+                window.queryResAnormalCleanIndecates = cleansIndices
+
+                this.queryIndices = indices.concat(cleansIndices)
+
+
+                if (!this.isAlSelecting) {
+                  this.isAlSelecting = true
+                  window.isAdjustingSel = true
+                  // this.boundingSelectionBtn.classList.add('actived')
+                  this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
+                }
+                // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
+                this.showCheckAllQueryRes = true
+                this.showMoreRecommend = true
+                // if (window.sessionStorage.isControlGroup == 'true') {
+                //   this.showMoreRecommend = false
+                // } else {
+                //   this.showMoreRecommend = true
+                // }
+                this.checkAllQueryRes = false
+                this.queryResultListTitle = 'Possible Abnormal Point List'
+                // let dom = this.$$("#queryResheader")
+
+                // dom.innerHTML = 'label'
+                this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isAnormalyQuery');
+              }
+            })
+
+        }
+      }
+    }
+    let DVIServer = window.sessionStorage.ipAddress;
+    let basePath = window.modelMath
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    await fetch("standalone_projector_config.json", { method: 'GET' })
-      .then(response => response.json())
-      .then(data => { DVIServer = data.DVIServerIP + ":" + data.DVIServerPort; basePath = data.DVIsubjectModelPath })
+
     window.suggestionIndicates = []
     window.checkboxDom = []
+    window.acceptInputList = []
+    window.rejectInputList = []
+    if (!window.acceptIndicates) {
+      window.acceptIndicates = []
+    }
+    if (!window.rejectIndicates) {
+      window.rejectIndicates = []
+    }
+
+
+    const queryListTable = document.createElement('table');
+    queryListTable.className = 'resTable'
+    if (this.showCheckAllQueryRes === true) {
+      this.accAllRadio = this.$$('#accAllRadio') as any;
+      this.rejAllRadio = this.$$('#rejAllRadio') as any;
+      // if (this.accAllRadio && this.rejAllRadio) {
+      // setTimeout(()=>{
+      this.accAllRadio.addEventListener('change', (e) => {
+        console.log('acc e', this.accAllRadio.checked)
+        if (this.accAllRadio.checked) {
+          for (let i = 0; i < indices.length; i++) {
+            window.acceptInputList[indices[i]].checked = true
+            window.rejectInputList[indices[i]].checked = false
+            if (window.acceptIndicates.indexOf(indices[i]) === -1) {
+              window.acceptIndicates.push(indices[i])
+            }
+            if (window.rejectIndicates.indexOf(indices[i]) !== -1) {
+              let index = window.rejectIndicates.indexOf(indices[i])
+              window.rejectIndicates.splice(index, 1)
+            }
+          }
+        }
+
+        window.customSelection = window.rejectIndicates.concat(window.acceptIndicates)
+        this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+        this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+        this.updateSessionStorage()
+        this.projectorEventContext.refresh()
+      })
+      this.rejAllRadio.addEventListener('change', (e) => {
+        console.log('rej e', this.rejAllRadio.checked)
+        for (let i = 0; i < indices.length; i++) {
+          window.acceptInputList[indices[i]].checked = false
+          window.rejectInputList[indices[i]].checked = true
+          if (window.rejectIndicates.indexOf(indices[i]) === -1) {
+            window.rejectIndicates.push(indices[i])
+          }
+          if (window.acceptIndicates.indexOf(indices[i]) !== -1) {
+            let index = window.acceptIndicates.indexOf(indices[i])
+            window.acceptIndicates.splice(index, 1)
+          }
+        }
+        window.customSelection = window.rejectIndicates.concat(window.acceptIndicates)
+        this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+        this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+        this.updateSessionStorage()
+        this.projectorEventContext.refresh()
+      })
+      // })
+
+      // }
+    }
+    if (indices.length > 2000) {
+      indices.length = 2000
+    }
     for (let i = 0; i < indices.length; i++) {
       const index = indices[i];
-      const row = document.createElement('div');
+      const row = document.createElement('th');
       row.className = 'row';
-      const label = this.getLabelFromIndex(index);
-      const rowLink = document.createElement('a');
-      rowLink.className = 'label';
-      rowLink.title = label;
-      rowLink.innerText = label;
+
+      // const rowLink = document.createElement('a');
+      // rowLink.className = 'label';
+      // rowLink.title = label;
+      // rowLink.innerHTML = label;
       row.onmouseenter = () => {
         this.projectorEventContext.notifyHoverOverPoint(index);
       };
       row.onmouseleave = () => {
         this.projectorEventContext.notifyHoverOverPoint(null);
       };
-      let input = document.createElement('input');
-        input.type = 'checkbox'
-        input.setAttribute('id', `resCheckbox${indices[i]}`)
-        if (!window.checkboxDom) {
-          window.checkboxDom = []
+      if (this.showCheckAllQueryRes === true) {
+
+        // let input = document.createElement('input');
+        // input.type = 'checkbox'
+        // input.setAttribute('id', `resCheckbox${indices[i]}`)
+        // if (!window.checkboxDom) {
+        //   window.checkboxDom = []
+        // }
+        // window.checkboxDom[indices[i]] = input
+        // input.addEventListener('change', (e) => {
+        //   if (!window.customSelection) {
+        //     window.customSelection = []
+        //   }
+        //   if (input.checked) {
+        //     if (window.customSelection.indexOf(indices[i]) === -1) {
+        //       window.customSelection.push(indices[i])
+        //       this.projectorEventContext.refresh()
+        //     }
+        //   } else {
+        //     let index = window.customSelection.indexOf(indices[i])
+        //     window.customSelection.splice(index, 1)
+        //     this.projectorEventContext.refresh()
+        //   }
+        //   this.projectorEventContext.notifyHoverOverPoint(indices[i]);
+        // })
+
+        // if (window.customSelection.indexOf(indices[i]) !== -1 && !input.checked) {
+        //   input.checked = true
+        // }
+        // let newtd = document.createElement('td')
+        // if(window.queryResAnormalCleanIndecates && window.queryResAnormalCleanIndecates.indexOf(index)!==-1){
+        //   input.disabled = true
+        //   input.style.visibility = 'hidden'
+        // }
+        // newtd.appendChild(input)
+        // newtd.className = 'inputColumn'
+        // newtd.appendChild(input)
+        // row.appendChild(newtd)
+
+        let newacctd: any = document.createElement('td')
+        let accInput: any = document.createElement('input');
+        accInput.setAttribute('name', `op${index}`)
+        accInput.setAttribute('id', `accept${index}`)
+        accInput.setAttribute('type', `radio`)
+        accInput.className = 'inputColumn';
+        accInput.setAttribute('value', `accept`)
+        window.acceptInputList[indices[i]] = accInput
+        newacctd.append(accInput)
+        if (window.queryResAnormalCleanIndecates && window.queryResAnormalCleanIndecates.indexOf(index) !== -1) {
+          let span = document.createElement('span');
+          span.innerText = " "
+          let newtd: any = document.createElement('td')
+          newtd.style.width = "50px"
+          newtd.append(span)
+
+          row.appendChild(newtd)
+        } else {
+          row.appendChild(newacctd)
         }
-        window.checkboxDom[indices[i]] = input
-        input.addEventListener('change', (e) => {
-          if (!window.customSelection) {
-            window.customSelection = []
+
+
+
+        accInput.addEventListener('mouseup', (e: any) => {
+          if (accInput.checked) {
+            // accInput.prop("checked", false);
+            accInput.checked = false
+            window.acceptIndicates.splice(window.acceptIndicates.indexOf(index), 1)
           }
-          if (input.checked) {
-            if(window.customSelection.indexOf(indices[i]) === -1){
-              window.customSelection.push(indices[i])
-              this.projectorEventContext.refresh()
-            }
-          } else {
-            let index = window.customSelection.indexOf(indices[i])
-            window.customSelection.splice(index, 1)
-            this.projectorEventContext.refresh()
-          }
-          this.projectorEventContext.notifyHoverOverPoint(indices[i]);
+          // if(newacctd.)
         })
-        row.appendChild(input);
-      // await fetch(`http://${DVIServer}/sprite?index=${indices[i]}&path=${basePath}`, {
-      //   method: 'GET',
-      //   mode: 'cors'
-      // }).then(response => response.json()).then(data => {
-      //   // console.log("response", data);
-      //   let img = document.createElement('img');
-      //   let input = document.createElement('input');
-      //   input.type = 'checkbox'
-      //   input.setAttribute('id', `resCheckbox${indices[i]}`)
-      //   img.src = 'data:image/png;base64,' + data.imgUrl;
-        
-      //   row.appendChild(input);
-      //   row.appendChild(img);
-      //   // logging.setModalMessage(null, msgId);
-      // }).catch(error => {
-      //   console.log("error", error);
-      // });
+        accInput.addEventListener('change', () => {
+
+
+          if (accInput.checked) {
+            if (window.acceptIndicates.indexOf(index) === -1) {
+              window.acceptIndicates.push(index)
+            }
+            if (window.rejectIndicates.indexOf(index) !== -1) {
+              window.rejectIndicates.splice(window.rejectIndicates.indexOf(index), 1)
+            }
+            this.accAllRadio.checked = false
+            this.rejAllRadio.checked = false
+
+          } else {
+            if (window.acceptIndicates.indexOf(index) !== -1) {
+              window.acceptIndicates.splice(window.acceptIndicates.indexOf(index), 1)
+            }
+          }
+          window.customSelection = window.acceptIndicates.concat(window.rejectIndicates)
+          this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+          this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+          this.updateSessionStorage()
+          this.projectorEventContext.refresh()
+  
+        })
+
+
+        let newrejtd = document.createElement('td')
+        let rejectInput = document.createElement('input');
+        window.rejectInputList[indices[i]] = rejectInput
+        rejectInput.setAttribute('type', `radio`)
+        rejectInput.setAttribute('name', `op${index}`)
+        accInput.setAttribute('id', `reject${index}`)
+        rejectInput.setAttribute('value', `reject`)
+        newrejtd.append(rejectInput)
+        if (window.queryResAnormalCleanIndecates && window.queryResAnormalCleanIndecates.indexOf(index) !== -1) {
+          let span = document.createElement('span');
+          span.innerText = "  "
+          let newtd: any = document.createElement('td')
+          newtd.style.width = "50px"
+          newtd.append(span)
+          row.appendChild(newtd)
+        } else {
+          row.appendChild(newrejtd)
+        }
+
+
+        rejectInput.addEventListener('change', () => {
+          if (rejectInput.checked) {
+            if (window.rejectIndicates.indexOf(index) === -1) {
+              window.rejectIndicates.push(index)
+            }
+            if (window.acceptIndicates.indexOf(index) !== -1) {
+              console.log(window.acceptIndicates.indexOf(index))
+              window.acceptIndicates.splice(window.acceptIndicates.indexOf(index), 1)
+            }
+            this.accAllRadio.checked = false
+            this.rejAllRadio.checked = false
+
+          } else {
+            if (window.rejectIndicates.indexOf(index) !== -1) {
+              window.rejectIndicates.splice(window.rejectIndicates.indexOf(index), 1)
+            }
+          }
+          window.customSelection = window.acceptIndicates.concat(window.rejectIndicates)
+          this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+          this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+          this.updateSessionStorage()
+          this.projectorEventContext.refresh()
+        })
+
+        // row.appendChild(input);
+      }
+      const label = this.getLabelFromIndex(index);
+      let arr = label.split("|")
+      for (let i = 0; i < arr.length; i++) {
+        let newtd = document.createElement('td');
+        newtd.className = 'queryResColumn';
+        newtd.innerText = arr[i]
+        row.appendChild(newtd)
+      }
+
 
       row.onmouseenter = async () => {
-         await fetch(`http://${DVIServer}/sprite?index=${indices[i]}&path=${basePath}`, {
-        method: 'GET',
-        mode: 'cors'
-      }).then(response => response.json()).then(data => {
-        // console.log("response", data);
-        let  imgsrc = data.imgUrl;
-        this.projectorEventContext.updateMetaDataByIndices(indices[i], imgsrc)
-        this.projectorEventContext.notifyHoverOverPoint(index);
-        // logging.setModalMessage(null, msgId);
-      }).catch(error => {
-        console.log("error", error);
-      });
-      
+        await fetch(`http://${DVIServer}/sprite?index=${indices[i]}&path=${basePath}&username=${window.sessionStorage.username}`, {
+          method: 'GET',
+          mode: 'cors'
+        }).then(response => response.json()).then(data => {
+          // console.log("response", data);
+          let imgsrc = data.imgUrl;
+          // this.projectorEventContext.updateMetaDataByIndices(indices[i], imgsrc)
+          this.projectorEventContext.notifyHoverOverPoint(index);
+          // logging.setModalMessage(null, msgId);
+        }).catch(error => {
+          console.log("error", error);
+        });
+
       };
       row.onmouseleave = () => {
-        this.projectorEventContext.updateMetaDataByIndices(-1, '')
+        // this.projectorEventContext.updateMetaDataByIndices(-1, '')
         this.projectorEventContext.notifyHoverOverPoint(null);
       };
 
-
       row.className = 'row-img';
-
-
-      row.appendChild(rowLink);
-      list.appendChild(row);
+      // row.appendChild(rowLink);
+      queryListTable.appendChild(row)
+      list.appendChild(queryListTable);
     }
   }
+  updateSessionStorage() {
+    console.log('update session')
+    window.sessionStorage.setItem('acceptIndicates', window.acceptIndicates.join(","))
+    window.sessionStorage.setItem('rejectIndicates', window.rejectIndicates.join(","))
+    window.sessionStorage.setItem('customSelection', window.customSelection.join(","))
+  }
   private getLabelFromIndex(pointIndex: number): string {
+    if (!window.flagindecatesList) {
+      window.flagindecatesList = []
+    }
     const metadata = this.projector.dataSet.points[pointIndex].metadata[
       this.selectedMetadataField
     ];
@@ -557,22 +945,87 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       original_label = `Unknown`;
     }
     let index = window.queryResPointIndices?.indexOf(pointIndex)
-    
-    let suggest_label = window.alSuggestLabelList[index]
+
+    let suggest_label = this.labelMap[window.alSuggestLabelList[index]]
+
+
     if (original_label == undefined) {
       original_label = `Unknown`;
-    } 
+    }
     let score = window.alSuggestScoreList[index]?.toFixed(3)
     const stringMetaData = metadata !== undefined ? String(metadata) : `Unknown #${pointIndex}`;
 
-    const displayprediction = prediction.length > 5 ? prediction : (prediction.length <= 4 ? "\xa0\xa0\xa0" + prediction + "\xa0\xa0\xa0" : "\xa0" + prediction + "\xa0\xa0")
-    const displayStringMetaData = stringMetaData.length > 5 ? stringMetaData : (stringMetaData.length <= 3 ? "\xa0\xa0\xa0" + stringMetaData + "\xa0\xa0\xa0" : "\xa0" + stringMetaData + "\xa0\xa0")
-    const displayPointIndex = String(pointIndex).length <= 3 ? (String(pointIndex).length === 1 ? "\xa0\xa0" + String(pointIndex) + "\xa0\xa0" : "\xa0" + String(pointIndex) + "\xa0\xa0") : String(pointIndex)
+    const displayprediction = prediction
+    const displayStringMetaData = stringMetaData
+
+    const displayPointIndex = String(pointIndex)
     // return String(pointIndex) + "Label: " + stringMetaData + " Prediction: " + prediction + " Original label: " + original_label;
-    let prediction_res = stringMetaData === prediction ? ' ✅ ' : ' ❗️ '
+    let prediction_res = suggest_label === prediction || window.alSuggestLabelList.length === 0 ? ' - ' : ' ❗️ '
+    if (window.queryResAnormalCleanIndecates && window.queryResAnormalCleanIndecates.indexOf(pointIndex) !== -1) {
+      return `${displayPointIndex}|${displayStringMetaData}| majority`
+    }
+    if (window.queryResAnormalIndecates && window.queryResAnormalIndecates.indexOf(pointIndex) !== -1) {
+      let prediction_res = suggest_label === displayStringMetaData ? ' - ' : ' ❗️ '
 
+      if (window.sessionStorage.isControlGroup == 'true') {
+        return `${displayPointIndex}|${displayprediction}|${score !== undefined ? score : '-'}`
+      } else {
+        if (prediction_res !== " - ") {
+          if (window.flagindecatesList.indexOf(pointIndex) === -1) {
+            window.flagindecatesList.push(pointIndex)
+          }
+        }
+        // return `${displayPointIndex}|${displayStringMetaData}|${prediction_res}|${score !== undefined ? score : '-'}`
+        return `${displayPointIndex}|${displayprediction}|${score !== undefined ? score : '-'}`
+      }
 
-    return displayPointIndex + " | " + displayStringMetaData +`(${suggest_label})` + " | " + displayprediction + " | " + prediction_res + " | " + score
+    }
+    if (this.showCheckAllQueryRes == false) {
+      if (window.sessionStorage.isControlGroup == 'true') {
+        return `${displayPointIndex}|${displayprediction}`
+      } else {
+        if (prediction_res !== " - ") {
+          if (window.flagindecatesList.indexOf(pointIndex) === -1) {
+            window.flagindecatesList.push(pointIndex)
+          }
+        }
+        return `${displayPointIndex}|${displayprediction}`
+      }
+    }
+    if (window.sessionStorage.isControlGroup == 'true') {
+      return `${displayPointIndex}|${displayprediction}|${score !== undefined ? score : '-'}`
+    } else {
+      if (prediction_res !== " - ") {
+        if (window.flagindecatesList.indexOf(pointIndex) === -1) {
+          window.flagindecatesList.push(pointIndex)
+        }
+      }
+      // return `${displayPointIndex}|${displayprediction}|${prediction_res}|${score !== undefined ? score : '-'}`
+      return `${displayPointIndex}|${displayprediction}|${score !== undefined ? score : '-'}`
+    }
+  }
+  private getnnLabelFromIndex(pointIndex: number): string {
+    const metadata = this.projector.dataSet.points[pointIndex].metadata[
+      this.selectedMetadataField
+    ];
+    let prediction = this.projector.dataSet.points[pointIndex]?.current_prediction;
+    if (prediction == undefined) {
+      prediction = `Unknown`;
+    }
+    let original_label = this.projector.dataSet.points[pointIndex].original_label;
+    if (original_label == undefined) {
+      original_label = `Unknown`;
+    }
+    if (original_label == undefined) {
+      original_label = `Unknown`;
+    }
+    const stringMetaData = metadata !== undefined ? String(metadata) : `Unknown #${pointIndex}`;
+    const displayprediction = prediction
+    const displayStringMetaData = stringMetaData
+    const displayPointIndex = String(pointIndex)
+    // return String(pointIndex) + "Label: " + stringMetaData + " Prediction: " + prediction + " Original label: " + original_label;
+    let prediction_res = stringMetaData === prediction ? ' - ' : ' ❗️ '
+    return `index:${displayPointIndex} | label:${displayStringMetaData}| prediction:${displayprediction} | ${prediction_res}`
   }
   private spriteImageRenderer() {
     const spriteImagePath = this.spriteMeta.imagePath;
@@ -625,7 +1078,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       neighborElement.className = 'neighbor';
       const neighborElementLink = document.createElement('a');
       neighborElementLink.className = 'neighbor-link';
-      neighborElementLink.title = this.getLabelFromIndex(neighbor.index);
+      neighborElementLink.title = this.getnnLabelFromIndex(neighbor.index);
       const labelValueElement = document.createElement('div');
       labelValueElement.className = 'label-and-value';
       const labelElement = document.createElement('div');
@@ -635,7 +1088,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         neighbor.dist,
         minDist
       );
-      labelElement.innerText = this.getLabelFromIndex(neighbor.index);
+      labelElement.innerText = this.getnnLabelFromIndex(neighbor.index);
       const valueElement = document.createElement('div');
       valueElement.className = 'value';
       valueElement.innerText = this.projector.dataSet.points[neighbor.index]?.current_inv_acc?.toFixed(3);
@@ -701,75 +1154,41 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         self.showTab(id);
       });
     }
-    self.showTab('normal');
+    if (window)
+      if (window.sessionStorage.taskType === 'anormaly detection' && window.sessionStorage.isControlGroup !== 'true'
+      ) {
+        self.showTab('anomaly');
+      } else if (window.sessionStorage.taskType === 'active learning') {
+        self.showTab('advanced');
+      }
+      else {
+        self.showTab('normal');
+        this.showMoreRecommend = false
+        // this.updateSearchResults([]);
+      }
 
-    // this.boundingSelectionBtn.onclick = (e: any) => {
 
-    //   this.isAlSelecting = !this.isAlSelecting
-    //   if (this.isAlSelecting) {
-    //     window.isAdjustingSel = true
-    //     this.boundingSelectionBtn.classList.add('actived')
-    //     this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
-    //     // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
-    //   } else {
-    //     window.isAdjustingSel = false
-    //     this.boundingSelectionBtn.classList.remove('actived')
-    //     this.projectorEventContext.setMouseMode(MouseMode.CAMERA_AND_CLICK_SELECT);
-    //   }
-    // }
+
 
     this.queryByStrategtBtn.onclick = () => {
-      let currentIndices = []
-      let previoustIIndices = []
-      if(!window.previousIndecates){
-        window.previousIndecates = []
-      }
-      if(!window.customSelection){
-        window.customSelection = []
-      }else{
-        for(let i =0;i<window.customSelection.length;i++){
-          if(window.previousIndecates.indexOf(window.customSelection[i]) == -1){
-            currentIndices.push(window.customSelection[i])
-          }else{
-            previoustIIndices.push(window.customSelection[i])
-          }
-        }
-      }
-      projector.queryByAL(
-        this.projector.iteration,
-        this.selectedStratergy,
-        Number(this.budget),
-        currentIndices,
-        previoustIIndices,
-        (indices: any,scores:any, labels:any) => {
-          if (indices != null) {
-            this.queryIndices = indices;
-            if (this.queryIndices.length == 0) {
-              this.searchBox.message = '0 matches.';
-            } else {
-              this.searchBox.message = `${this.queryIndices.length} matches.`;
-            }
-
-            window.alSuggestScoreList = scores
-            window.alSuggestLabelList = labels
-
-            this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isALQuery');
-            if (!this.isAlSelecting) {
-              this.isAlSelecting = true
-              window.isAdjustingSel = true
-              // this.boundingSelectionBtn.classList.add('actived')
-              this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
-            }
-            // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
-
-          }
-        }
-      );
+      this.queryByAl(projector, window.acceptIndicates, window.rejectIndicates,this.budget, true)
     }
 
+    // if(this.showSelectionBtn){
     this.showSelectionBtn.onclick = () => {
-      for(let i=0;i< window.previousIndecates?.length;i++){
-        if(window.customSelection.indexOf(window.previousIndecates[i]) === -1){
+
+      for (let i = 0; i < window.previousIndecates?.length; i++) {
+        if (window.customSelection.indexOf(window.previousIndecates[i]) === -1) {
+          window.customSelection.push(window.previousIndecates[i])
+        }
+      }
+      this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isShowSelected');
+      // this.updateSearchResults(this.queryIndices)
+    }
+    // }
+    this.noisyshowSelectionBtn.onclick = () => {
+      for (let i = 0; i < window.previousIndecates?.length; i++) {
+        if (window.customSelection.indexOf(window.previousIndecates[i]) === -1) {
           window.customSelection.push(window.previousIndecates[i])
         }
       }
@@ -779,9 +1198,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
 
     this.queryAnomalyBtn.onclick = () => {
       projector.queryAnormalyStrategy(
-        '',
-        Number(this.budget),this.selectedAnormalyClass,[],[],
-        (indices: any, cleansIndices:any) => {
+        Number(this.anomalyRecNum), this.selectedAnormalyClass, [], [], window.acceptIndicates, window.rejectIndicates, 'TBSampling', true,
+        (indices: any, cleansIndices: any) => {
           if (indices != null) {
             // this.queryIndices = indices;
             if (this.queryIndices.length == 0) {
@@ -793,8 +1211,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
             window.queryResAnormalIndecates = indices
             window.queryResAnormalCleanIndecates = cleansIndices
 
-            this.queryIndices = indices.concat(window.queryResAnormalCleanIndecates)
-            this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isAnormalyQuery');
+            this.queryIndices = indices.concat(cleansIndices)
             if (!this.isAlSelecting) {
               this.isAlSelecting = true
               window.isAdjustingSel = true
@@ -802,21 +1219,38 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
               this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
             }
             // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
+            this.showCheckAllQueryRes = true
+            this.showMoreRecommend = true
+            // if (window.sessionStorage.isControlGroup == 'true') {
+            //   this.showMoreRecommend = false
+            // } else {
+            //   this.showMoreRecommend = true
+            // }
+            this.checkAllQueryRes = false
+            this.queryResultListTitle = 'Possible Abnormal Point List'
+            // let dom = this.$$("#queryResheader")
 
+            // dom.innerHTML = 'label'
+            this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isAnormalyQuery');
           }
         })
     }
 
 
     this.trainBySelBtn.onclick = () => {
+      if (window.acceptIndicates?.length < 500) {
+        logging.setErrorMessage(`Current selected interested samples: ${window.acceptIndicates?.length},
+          Please Select 500 interest samples`);
+        return
+      }
       this.resetStatus()
       // this.boundingSelectionBtn.classList.remove('actived')
       // this.projectorEventContext.setMouseMode(MouseMode.CAMERA_AND_CLICK_SELECT);
       // console.log(window.cus)
-      let retrainList  = window.previousIndecates
+      let retrainList = window.previousIndecates
       retrainList
-      for(let i =0;i<window.customSelection.length;i++){
-        if(window.previousIndecates.indexOf(window.customSelection[i]) === -1){
+      for (let i = 0; i < window.customSelection.length; i++) {
+        if (window.previousIndecates.indexOf(window.customSelection[i]) === -1) {
           retrainList.push(window.customSelection[i])
         }
       }
@@ -824,7 +1258,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         return a - b;
       }
       retrainList.sort(func)
-      this.projector.retrainBySelections(this.projector.iteration, retrainList)
+      this.projector.retrainBySelections(this.projector.iteration, window.acceptIndicates, window.rejectIndicates)
       //  this.projectionsPanel.reTrainBySel(this.projector.iteration,this.selectedPointIndices)
     }
     this.distFunc = vector.cosDist;
@@ -861,44 +1295,16 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       this.updateNeighborsList(neighbors);
     };
 
-    // Called whenever the search text input changes.
-    // const updateInput = (value: string, inRegexMode: boolean) => {
-    //   if (value == null || value.trim() === '') {
-    //     this.searchBox.message = '';
-    //     this.projectorEventContext.notifySelectionChanged([]);
-    //     return;
-    //   }
-    //   projector.query(
-    //     value,
-    //     inRegexMode,
-    //     this.selectedMetadataField,
-    //     this.currentPredicate,
-    //     (currPredicates:{[key:string]: any}, indices:any)=>{
-    //       this.currentPredicate = currPredicates;
-    //       this.queryIndices = indices;
-    //   }
-    //   );
-    //
-    //   if (this.queryIndices.length == 0) {
-    //     this.searchBox.message = '0 matches.';
-    //   } else {
-    //     this.searchBox.message = `${this.queryIndices.length} matches.`;
-    //   }
-    //   this.projectorEventContext.notifySelectionChanged(this.queryIndices);
-    // };
-    // this.searchBox.registerInputChangedListener((value, inRegexMode) => {
-    //   updateInput(value, inRegexMode);
-    // });
-    // Filtering dataset.
 
     this.noisyBtn.onclick = () => {
-      if(!window.queryResAnormalIndecates?.length){
-        logging.setErrorMessage('Please query anomaly points first');
+
+      if (window.customSelection.length == 0) {
+        alert('please confirm some points first')
         return
       }
       window.isAnimatating = true
-      projector.getAllResPosList((data:any)=>{
-        if(data && data.results) {
+      projector.getAllResPosList((data: any) => {
+        if (data && data.results) {
           window.allResPositions = data
           this.totalEpoch = Object.keys(data.results).length
           this.projectorEventContext.setDynamicNoisy()
@@ -920,37 +1326,6 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
       }
     }
 
-    // this.setFilterButton.onclick = () => {
-    //   window.isFilter = true
-    //   var indices = this.selectedPointIndices.concat(
-    //     this.neighborsOfFirstPoint.map((n) => n.index)
-    //   );
-
-    //   this.currentPredicate[this.selectedMetadataField] = this.searchPredicate;
-    //   this.filterIndices = this.selectedPointIndices.sort()
-
-    //   projector.filterDataset(indices, true);
-    //   this.enableResetFilterButton(true);
-    //   this.updateFilterButtons(this.filterIndices.length);
-    // };
-    // this.resetFilterButton.onclick = () => {
-    //   window.isFilter = false
-    //   this.queryIndices = [];
-    //   this.currentPredicate = {};
-    //   this.filterIndices = [];
-    //   projector.resetFilterDataset(projector.dataSet.DVICurrentRealDataNumber);
-    //   this.enableResetFilterButton(false);
-    //   this.searchBox.setValue("", false);
-    // };
-    // this.clearSelectionButton.onclick = () => {
-    //   window.customSelection = []
-    //   window.suggestionIndicates = []
-    //   window.queryResPointIndices = []
-    //   this.projectorEventContext.refresh()
-    //   this.updateFilterButtons(0)
-    //   projector.adjustSelectionAndHover([]);
-    //   this.queryIndices = [];
-    // };
     this.enableResetFilterButton(false);
 
     const updateInput = (value: string, inRegexMode: boolean) => {
@@ -968,7 +1343,7 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         this.projectorEventContext.notifySelectionChanged([]);
         return;
       }
-      console.log(this.searchPredicate, this.selectedMetadataField, this.confidenceThresholdFrom, this.confidenceThresholdTo)
+
       projector.query(
         this.searchPredicate,
         this.searchInRegexMode,
@@ -985,36 +1360,94 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
             } else {
               this.searchBox.message = `${this.queryIndices.length} matches.`;
             }
-            // console.log('this.queryIndices',this.queryIndices)
+            this.showCheckAllQueryRes = true
+            this.showMoreRecommend = false
             this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'normal');
+            this.queryResultListTitle = 'Query Result List'
           }
         }
       );
     }
-    // this.addButton.onclick = () => {
-    //   for (let i = 0; i < this.currentBoundingBoxSelection.length; i++) {
-    //     if (this.boundingBoxSelection.indexOf(this.currentBoundingBoxSelection[i]) < 0) {
-    //       this.boundingBoxSelection.push(this.currentBoundingBoxSelection[i]);
-    //     }
-    //   }
-    // }
-    // this.resetButton.onclick = () => {
-    //   this.boundingBoxSelection = [];
-    // }
-    //this.sentButton.onclick = () => {
-    //console.log(this.selectedPointIndices, this.boundingBoxSelection)
-    // this.projector.saveDVISelection(this.boundingBoxSelection, (msg: string) => {
-    //   this.selectinMessage.innerText = msg;
-    //   logging.setWarnMessage(msg, null);
-    // });
-    //}
-    // this.showButton.onclick = () => {
-    //   this.projectorEventContext.notifySelectionChanged(this.boundingBoxSelection, true);
-    // }
+  
   }
+
+
+
+  private queryByAl(projector, acceptIndicates, rejectIndicates, querNum?, isRecommend?) {
+    let that = this
+    let num = Number(this.budget)
+    let stratergy = this.selectedStratergy
+    if (this.selectedStratergy === 'Interest potential') {
+      stratergy = 'TBSampling'
+    }
+    if (querNum) {
+      num = Number(querNum)
+    }
+    if (isRecommend === false) {
+      if (window.sessionStorage.isControlGroup == 'true') {
+        stratergy = 'TBSampling'
+      } else {
+        stratergy = 'Feedback'
+      }
+    }
+    if (!acceptIndicates) {
+      acceptIndicates = []
+    }
+    if (!rejectIndicates) {
+      rejectIndicates = []
+    }
+    projector.queryByAL(
+      this.projector.iteration,
+      stratergy,
+      num,
+      acceptIndicates,
+      rejectIndicates,
+      isRecommend,
+      (indices: any, scores: any, labels: any) => {
+        if (indices != null) {
+          this.queryIndices = indices;
+          if (this.queryIndices.length == 0) {
+            this.searchBox.message = '0 matches.';
+          } else {
+            this.searchBox.message = `${this.queryIndices.length} matches.`;
+          }
+
+          window.alSuggestScoreList = scores
+          window.alSuggestLabelList = labels
+
+          if (!this.isAlSelecting) {
+            this.isAlSelecting = true
+            window.isAdjustingSel = true
+            // this.boundingSelectionBtn.classList.add('actived')
+            this.projectorEventContext.setMouseMode(MouseMode.AREA_SELECT)
+          }
+          this.showCheckAllQueryRes = true
+          this.showMoreRecommend = true
+          // if (window.sessionStorage.isControlGroup == 'true') {
+          //   this.showMoreRecommend = false
+          // } else {
+          //   this.showMoreRecommend = true
+          // }
+          this.checkAllQueryRes = false
+          this.queryResultListTitle = 'Active Learning suggestion'
+          let dom = this.$$("#queryResheader")
+          dom.innerHTML = 'predict'
+          this.projectorEventContext.notifySelectionChanged(this.queryIndices, false, 'isALQuery');
+          // this.projectorScatterPlotAdapter.scatterPlot.setMouseMode(MouseMode.AREA_SELECT);
+
+        }
+      }
+    );
+  }
+
   resetStatus() {
     this.isAlSelecting = false
     window.isAdjustingSel = false
+  }
+
+  playAnimationFinished() {
+    this.noisyBtn.disabled = false;
+    this.stopBtn.disabled = true;
   }
 
   public showTab(id: string) {
@@ -1043,13 +1476,27 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         this.style.height = main?.clientHeight + 'px';
       });
     }
-    console.log(id);
+    if(id === 'normal'){
+      this.showMoreRecommend = false
+    }
+    this.updateSearchResults([]);
+    window.alSuggestScoreList = []
+    console.log('id',id);
   }
+
+
+  updateDisabledStatues(value: boolean) {
+    this.disabledAlExBase = value
+  }
+
+
+
   updateBoundingBoxSelection(indices: number[]) {
     this.currentBoundingBoxSelection = indices;
     if (!window.customSelection) {
       window.customSelection = []
     }
+
     for (let i = 0; i < this.currentBoundingBoxSelection.length; i++) {
       if (window.customSelection.indexOf(this.currentBoundingBoxSelection[i]) < 0) {
         window.customSelection.push(this.currentBoundingBoxSelection[i]);
@@ -1058,6 +1505,8 @@ class InspectorPanel extends LegacyElementMixin(PolymerElement) {
         window.customSelection.splice(index, 1)
       }
     }
+    this.noisyBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
+    this.stopBtn.style.visibility = Boolean(window.customSelection?.length)?'':'hidden'
     // window.customSelection = this.currentBoundingBoxSelection
   }
   private updateNumNN() {

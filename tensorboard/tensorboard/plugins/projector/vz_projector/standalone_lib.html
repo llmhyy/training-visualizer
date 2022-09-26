@@ -41,47 +41,55 @@ limitations under the License.
     }
 
     document.getElementById("loginBtn").addEventListener('click', async () => {
-
+      let temp = document.getElementsByName("task")
+      for (let i = 0; i < temp.length; i++) {
+        if (temp[i].checked) {
+          window.sessionStorage.setItem('taskType', temp[i].value)
+          window.taskType = temp[i].value
+        }
+      }
       const username = document.getElementById("loginInput").value
       const password = document.getElementById("passwordInput").value
       //调用登陆接口获取token
       let headers = new Headers();
       headers.append('Content-Type', 'application/json');
       headers.append('Accept', 'application/json');
-      await fetch("standalone_projector_config.json", {
-          method: 'GET'
-        })
-        .then(response => response.json())
-        .then(data => {
-          const ip_address = data.DVIServerIP + ":" + data.DVIServerPort;
-          const DVIServer = ip_address;
-          fetch("http://" + DVIServer + "/login", {
-            method: 'POST',
-            body: JSON.stringify({
-              "username": username,
-              "password": password,
-            }),
-            headers: headers,
-            mode: 'cors'
-          }).then(response => response.json()).then(data => {
-            console.log('data', data)
-            if (data.normal_content_path && data.unormaly_content_path) {
-              document.getElementById("bodyContent").style.visibility = ''
-              document.getElementById("loginContainer").style.display = 'none'
-              window.sessionStorage.setItem('normal_content_path', data.normal_content_path)
-              window.sessionStorage.setItem('unormaly_content_path', data.unormaly_content_path)
-            }else{
-              alert(data.message)
-            }
-           
-          }).catch(error => {
-            console.log(error);
-            stepCallback(null, null, null, null, null);
-          });
 
-        });
+      const DVIServer = document.getElementById("ipAddressInput").value;
+      window.ipAddress = document.getElementById("ipAddressInput").value
+      window.sessionStorage.setItem('ipAddress', DVIServer)
+      fetch("http://" + DVIServer + "/login", {
+        method: 'POST',
+        body: JSON.stringify({
+          "username": username,
+          "password": password,
+        }),
+        headers: headers,
+        mode: 'cors'
+      }).then(response => response.json()).then(data => {
+        console.log('data', data)
+        window.sessionStorage.setItem('username', username)
+        if (data.normal_content_path && data.unormaly_content_path) {
+          document.getElementById("bodyContent").style.visibility = ''
+          document.getElementById("loginContainer").style.display = 'none'
+          window.sessionStorage.setItem('normal_content_path', data.normal_content_path)
+          window.sessionStorage.setItem('unormaly_content_path', data.unormaly_content_path)
+          window.sessionStorage.setItem('isControlGroup',data.isControl?data.isControl:false)
+          setTimeout(() => {
+            location.reload()
+          }, 1)
+        } else {
+          alert(data.message)
+        }
 
-    })
+      }).catch(error => {
+        console.log(error);
+        stepCallback(null, null, null, null, null);
+      });
+
+    });
+
+
     document.getElementById("registerBtn").addEventListener('click', () => {
       showRegisterDialog()
     })
@@ -151,9 +159,17 @@ limitations under the License.
       <div class="login-item">
         <span>password:</span><input type="password" class="login-input" id="passwordInput" />
       </div>
+      <div class="login-item">
+        <span>ip:host</span><input type="input" class="login-input" id="ipAddressInput" value="localhost:5001" />
+      </div>
       <div class="footer">
-        <button id="loginBtn" class="ink-button">Login</button>
-        <button id="registerBtn" class="ink-button">Register</button>
+        <button id="loginBtn" style="width: 100%;" class="ink-button">Login</button>
+        <button id="registerBtn" style="visibility: hidden;width: 0;" class="ink-button">Register</button>
+      </div>
+      <div class="choose-task">
+        task: 
+        <input type="radio" name="task" value="anormaly detection" checked="checked"> Fault Localization
+        <input type="radio" name="task" value="active learning">Sample Selection
       </div>
     </div>
 
@@ -181,7 +197,7 @@ limitations under the License.
   <!-- <vz-login-app></vz-login-app> -->
   <vz-projector-app id="bodyContent" documentation-link="https://www.tensorflow.org/get_started/embedding_viz"
     bug-report-link="https://github.com/tensorflow/tensorboard/issues" serving-mode="demo"
-    projector-config-json-path="standalone_projector_config.json" page-view-logging>
+    projector-config-json-path="standalone_projector_config.json">
   </vz-projector-app>
 </body>
 
@@ -192,7 +208,7 @@ limitations under the License.
     position: absolute;
     width: 100%;
     height: 100vh;
-    background: linear-gradient(35deg, #b8ffff, #ffcfcf);
+    background: linear-gradient(35deg, #bb313e25, #bb313e25, #d7222925, #dd4a1625, #e4761525, #f5c50025, #f0e92725, #b1ce2425, #48a93525, #03944525, #157c4f25, #176a5825, #1b556325, #1d386f25, #1d386f25, #20277825, #52266325, #8a244b25);
     text-align: center;
 
   }
@@ -203,18 +219,18 @@ limitations under the License.
     top: 20%;
     left: 50%;
     width: 350px;
-    margin-left: -130px;
+    margin-left: -90px;
   }
 
   .login-card {
     width: 300px;
-    height: 220px;
+    height: 250px;
     position: fixed;
     top: 30%;
     left: 50%;
     margin-left: -150px;
     text-align: center;
-    padding: 20px 50px;
+    padding: 20px 80px 50px 80px;
     box-shadow: 0 3px 15px rgb(0 0 0 / 20%);
     background: rgba(255, 255, 255, 0.3);
   }
@@ -247,5 +263,9 @@ limitations under the License.
   .footer {
     display: flex;
     justify-content: space-between;
+  }
+
+  .choose-task {
+    white-space: nowrap;
   }
 </style>
