@@ -1,3 +1,6 @@
+⚠️ For the most recent update of our project, please visit https://github.com/code-philia/time-travelling-visualizer
+
+
 # What is Time-Travelling Visualization?
 Time-Travelling Visualization, a technique designed to visualize high-dimensional representations during the deep learning training process. In other words, our method is designed to transform the model training dynamics into an animation of canvas with colorful dots and territories.
 
